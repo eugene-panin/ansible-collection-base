@@ -22,17 +22,19 @@ Consul, Nomad, Vault or anything from another collection.
 
 ## Install
 
+```bash
+ansible-galaxy collection install eugene_panin.base
+```
+
+Or straight from a tag, which is what you want if you care that a push to
+`main` cannot change what you deploy:
+
 ```yaml
 # requirements.yml
 collections:
-  - name: eugene_panin.base
-    source: https://github.com/eugene-panin/ansible-collection-base.git
+  - name: https://github.com/eugene-panin/ansible-collection-base.git
     type: git
-    version: main
-```
-
-```bash
-ansible-galaxy collection install -r requirements.yml
+    version: v0.1.0
 ```
 
 ## Use
