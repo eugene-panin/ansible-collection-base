@@ -1,0 +1,11 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure wireguard-tools is installed
+      ansible.builtin.apt:
+        name: wireguard-tools
+        state: present
+        update_cache: true
+        cache_valid_time: 3600

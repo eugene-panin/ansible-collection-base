@@ -28,8 +28,12 @@ jobs:
         run: ansible-lint --profile production
 
   molecule:
-    name: molecule
+    name: molecule (${{ matrix.role }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [wireguard, wireguard_client]
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +51,7 @@ jobs:
 
       - name: molecule test
         run: molecule test --all
-        working-directory: roles/wireguard
+        working-directory: roles/${{ matrix.role }}
 
   build:
     name: build

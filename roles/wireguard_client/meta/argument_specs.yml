@@ -27,11 +27,11 @@ argument_specs:
             type: str
             required: true
             description: The client's address on the mesh, with prefix length.
-          allowed_ips:
+          routes:
             type: str
             description:
-              - What the client routes through the tunnel.
-              - Defaults to O(wireguard_client_allowed_ips).
+              - What this client sends through the tunnel.
+              - Defaults to O(wireguard_client_routes).
       wireguard_client_dir:
         type: str
         default: /etc/wireguard/clients
@@ -42,12 +42,14 @@ argument_specs:
         description:
           - host:port the clients dial. Configurations are not rendered until
             it is set.
-      wireguard_client_allowed_ips:
+      wireguard_client_routes:
         type: str
         default: 10.10.0.0/24
         description:
-          - Default route set for clients that do not name their own.
-          - Widen it to 0.0.0.0/0 to send all traffic through the tunnel.
+          - What clients send through the tunnel, unless they name their own.
+          - Widen it to 0.0.0.0/0 for a full tunnel.
+          - Not to be confused with a peer's C(allowed_ips) on the host, which
+            is the address the client is reachable at.
       wireguard_client_dns:
         type: list
         elements: str

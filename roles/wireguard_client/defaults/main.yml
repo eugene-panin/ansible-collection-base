@@ -2,6 +2,6 @@
 wireguard_client_list: []
 wireguard_client_dir: /etc/wireguard/clients
 wireguard_client_endpoint: ""
-wireguard_client_allowed_ips: 10.10.0.0/24
+wireguard_client_routes: 10.10.0.0/24
 wireguard_client_dns: []
 wireguard_client_persistent_keepalive: 25

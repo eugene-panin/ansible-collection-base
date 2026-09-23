@@ -1,0 +1,13 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    wireguard_client_list:
+      - name: laptop
+        address: 10.10.0.2/32
+      - name: phone
+        address: 10.10.0.3/32
+        routes: 0.0.0.0/0
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"

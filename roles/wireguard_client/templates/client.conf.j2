@@ -8,6 +8,6 @@ DNS = {{ wireguard_client_dns | join(', ') }}
 
 [Peer]
 PublicKey = {{ wireguard_public_key }}
-AllowedIPs = {{ item.allowed_ips | default(wireguard_client_allowed_ips) }}
+AllowedIPs = {{ item.routes | default(wireguard_client_routes) }}
 Endpoint = {{ wireguard_client_endpoint }}
 PersistentKeepalive = {{ wireguard_client_persistent_keepalive }}

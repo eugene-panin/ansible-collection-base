@@ -1,0 +1,40 @@
+---
+- name: Render the configurations once the host key is known
+  hosts: all
+  become: true
+  vars:
+    wireguard_client_list:
+      - name: laptop
+        address: 10.10.0.2/32
+      - name: phone
+        address: 10.10.0.3/32
+        routes: 0.0.0.0/0
+    wireguard_public_key: nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=
+    wireguard_client_endpoint: vpn.example.org:51820
+    wireguard_client_dns:
+      - 10.10.0.1
+      - internal.example.org
+  pre_tasks:
+    - name: Stat the configurations before the endpoint is known
+      ansible.builtin.stat:
+        path: "/etc/wireguard/clients/{{ item }}.conf"
+      register: _wireguard_client_before
+      loop:
+        - laptop
+        - phone
+
+    - name: Assert nothing was rendered without a host key
+      ansible.builtin.assert:
+        that:
+          - _wireguard_client_before.results | map(attribute='stat.exists') | select | list | length == 0
+        quiet: true
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+  post_tasks:
+    - name: Assert the peer list was published
+      ansible.builtin.assert:
+        that:
+          - wireguard_client_peers | map(attribute='name') | sort == ['laptop', 'phone']
+          - wireguard_client_peers | map(attribute='allowed_ips') | sort == ['10.10.0.2/32', '10.10.0.3/32']
+          - wireguard_client_peers | map(attribute='public_key') | select('match', '^[A-Za-z0-9+/]{43}=$') | list | length == 2
+        quiet: true

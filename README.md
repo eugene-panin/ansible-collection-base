@@ -9,6 +9,7 @@ Consul, Nomad, Vault or anything from another collection.
 | Role | Purpose |
 |---|---|
 | [`wireguard`](roles/wireguard/README.md) | WireGuard interface: generated-once key, declarative peers, `wg-quick@` unit |
+| [`wireguard_client`](roles/wireguard_client/README.md) | Keys and importable `.conf` files for the devices that connect to it |
 
 ## Requirements
 
@@ -54,6 +55,35 @@ and in `meta/argument_specs.yml`.
             public_key: EXAMPLEKeyReplaceMeWithYourOwnPeerPubKey0000=
             allowed_ips: 10.77.0.2/32
 ```
+
+Handing out client configs is a second role, run either side of the first one:
+
+```yaml
+- name: Bring up the mesh and hand out configs
+  hosts: all
+  become: true
+  vars:
+    wireguard_client_list:
+      - name: laptop
+        address: 10.77.0.2/32
+    wireguard_client_endpoint: "{{ ansible_host }}:51820"
+    wireguard_client_routes: 10.77.0.0/24
+  tasks:
+    - ansible.builtin.include_role:
+        name: eugene_panin.base.wireguard_client
+
+    - ansible.builtin.include_role:
+        name: eugene_panin.base.wireguard
+      vars:
+        wireguard_peers: "{{ wireguard_client_peers }}"
+
+    - ansible.builtin.include_role:
+        name: eugene_panin.base.wireguard_client
+```
+
+Read [`wireguard_client`](roles/wireguard_client/README.md) before you use it:
+it generates client private keys on the host and leaves them there, which is
+not how WireGuard is normally set up.
 
 ## Boundary
 

@@ -1,0 +1,57 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stat the rendered configurations
+      ansible.builtin.stat:
+        path: "/etc/wireguard/clients/{{ item }}.conf"
+      register: _wireguard_client_conf
+      loop:
+        - laptop
+        - phone
+
+    - name: Assert both configurations exist and are root-only
+      ansible.builtin.assert:
+        that:
+          - _wireguard_client_conf.results | map(attribute='stat.exists') | select | list | length == 2
+          - _wireguard_client_conf.results | map(attribute='stat.mode') | unique == ['0600']
+        quiet: true
+
+    - name: Read the laptop configuration and its key
+      ansible.builtin.slurp:
+        src: "{{ item }}"
+      register: _wireguard_client_read
+      loop:
+        - /etc/wireguard/clients/laptop.conf
+        - /etc/wireguard/clients/laptop.key
+      no_log: true
+
+    - name: Assert the configuration carries the key that was generated for it
+      ansible.builtin.assert:
+        that:
+          - "'PrivateKey = ' ~ _wireguard_client_key in _wireguard_client_text"
+          - "'Address = 10.10.0.2/32' in _wireguard_client_text"
+          - "'PublicKey = nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=' in _wireguard_client_text"
+          - "'Endpoint = vpn.example.org:51820' in _wireguard_client_text"
+          - "'AllowedIPs = 10.10.0.0/24' in _wireguard_client_text"
+          - "'DNS = 10.10.0.1, internal.example.org' in _wireguard_client_text"
+        quiet: true
+      vars:
+        _wireguard_client_text: "{{ _wireguard_client_read.results[0].content | b64decode }}"
+        _wireguard_client_key: "{{ _wireguard_client_read.results[1].content | b64decode | trim }}"
+      no_log: true
+
+    - name: Read the phone configuration
+      ansible.builtin.slurp:
+        src: /etc/wireguard/clients/phone.conf
+      register: _wireguard_client_phone
+      no_log: true
+
+    - name: Assert the per-client route override won over the default
+      ansible.builtin.assert:
+        that:
+          - "'AllowedIPs = 0.0.0.0/0' in _wireguard_client_phone.content | b64decode"
+        quiet: true
+      no_log: true
