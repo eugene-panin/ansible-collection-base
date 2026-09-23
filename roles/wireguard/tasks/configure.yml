@@ -7,17 +7,35 @@
     group: root
     mode: '0700'
 
+- name: Check whether the interface private key already exists
+  ansible.builtin.stat:
+    path: "{{ wireguard_private_key_path }}"
+  register: _wireguard_key_stat
+  check_mode: false
+
 - name: Generate the interface private key
   ansible.builtin.shell:
-    cmd: "umask 077 && wg genkey > {{ wireguard_private_key_path | quote }}"
+    cmd: >-
+      umask 077
+      && wg genkey > {{ wireguard_private_key_path | quote }}.new
+      && mv {{ wireguard_private_key_path | quote }}.new
+      {{ wireguard_private_key_path | quote }}
     creates: "{{ wireguard_private_key_path }}"
 
 - name: Read the interface private key
   ansible.builtin.slurp:
     src: "{{ wireguard_private_key_path }}"
   register: _wireguard_private_key_slurp
-  when: not ansible_check_mode
+  when: _wireguard_key_stat.stat.exists or not ansible_check_mode
   no_log: true
+
+- name: Assert the interface private key is not empty
+  ansible.builtin.assert:
+    that:
+      - _wireguard_private_key_slurp.content | default('') | b64decode | trim | length > 0
+    fail_msg: "{{ wireguard_private_key_path }} is empty, remove it and run again"
+    quiet: true
+  when: not ansible_check_mode
 
 - name: Render the interface configuration
   ansible.builtin.template:
