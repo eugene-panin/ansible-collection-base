@@ -16,8 +16,9 @@ not mint a new one (which would silently invalidate every peer).
 | `wireguard_address` | `10.10.0.1/24` | This host's mesh address, with prefix |
 | `wireguard_listen_port` | `51820` | UDP listen port |
 | `wireguard_peers` | `[]` | Peers permitted to connect (see below) |
-| `wireguard_manage_firewall` | `true` | Open the listen port with ufw; requires ufw installed |
-| `wireguard_private_key_path` | `/etc/wireguard/wg0.key` | Where the key lives |
+| `wireguard_manage_firewall` | `true` | Manage ufw rules for this interface; requires ufw installed |
+| `wireguard_allow_mesh_traffic` | `true` | Accept everything arriving through the tunnel |
+| `wireguard_private_key_path` | `/etc/wireguard/<interface>.key` | Where the key lives |
 
 Peer entries take `public_key` and `allowed_ips` (both required), plus
 optional `name`, `endpoint` and `persistent_keepalive`.
@@ -44,3 +45,12 @@ optional `name`, `endpoint` and `persistent_keepalive`.
   `wireguard_private_key_path` by hand and re-run if you really mean it.
 - `wireguard_manage_firewall: true` needs `ufw` present. Set it to `false` on
   hosts where the firewall is owned by something else.
+- `wireguard_allow_mesh_traffic` exists because a default-deny host will
+  complete the WireGuard handshake and then silently drop everything you
+  built the tunnel for. Traffic arriving on the interface has already been
+  authenticated by WireGuard's keys, so accepting it wholesale is reasonable;
+  set the variable to `false` if you would rather open specific ports.
+- Peers reaching *each other* (rather than just this host) additionally needs
+  IP forwarding and NAT, which this role does not configure.
+- `wireguard_address` is rendered verbatim, so a dual-stack value such as
+  `10.77.0.1/24, fd00::1/64` works.

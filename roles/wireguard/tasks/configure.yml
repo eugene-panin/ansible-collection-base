@@ -42,3 +42,13 @@
     proto: udp
     comment: "WireGuard {{ wireguard_interface }}"
   when: wireguard_manage_firewall | bool
+
+- name: Allow traffic arriving through the tunnel
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ wireguard_interface }}"
+    comment: "WireGuard {{ wireguard_interface }} mesh"
+  when:
+    - wireguard_manage_firewall | bool
+    - wireguard_allow_mesh_traffic | bool

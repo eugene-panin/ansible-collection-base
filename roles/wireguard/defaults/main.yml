@@ -17,10 +17,17 @@ wireguard_listen_port: 51820
 #   persistent_keepalive (optional) seconds, for peers behind NAT
 wireguard_peers: []
 
-# Open wireguard_listen_port with ufw. Requires ufw to be installed. Set to
+# Manage ufw rules for this interface. Requires ufw to be installed. Set to
 # false when the firewall is managed elsewhere: the role then touches no
 # firewall state at all.
 wireguard_manage_firewall: true
+
+# Accept everything arriving through the tunnel (ufw allow in on <interface>).
+# Without this a default-deny host completes the handshake and then drops the
+# traffic you built the tunnel for. What arrives on the interface has already
+# been authenticated by WireGuard's own keys. Set to false to allow specific
+# ports yourself instead.
+wireguard_allow_mesh_traffic: true
 
 # Generated on first run and never rotated by this role — rotating it would
 # invalidate every peer's configuration.

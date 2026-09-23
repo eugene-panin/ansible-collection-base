@@ -46,11 +46,19 @@ argument_specs:
         type: bool
         default: true
         description:
-          - Open the listen port with ufw. Requires ufw to be installed.
+          - Manage ufw rules for this interface. Requires ufw to be installed.
           - When false the role touches no firewall state.
+      wireguard_allow_mesh_traffic:
+        type: bool
+        default: true
+        description:
+          - Accept everything arriving through the tunnel.
+          - Without it a default-deny host completes the handshake and then
+            drops the traffic the tunnel was built for.
+          - Ignored when O(wireguard_manage_firewall=false).
       wireguard_private_key_path:
         type: str
-        default: /etc/wireguard/wg0.key
+        default: /etc/wireguard/{{ wireguard_interface }}.key
         description:
           - Where the private key is stored. Generated once and never rotated
             by this role.
