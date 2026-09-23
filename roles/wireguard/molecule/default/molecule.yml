@@ -1,4 +1,8 @@
 ---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: molecule/default/requirements.yml
 driver:
   name: docker
 platforms:
@@ -30,7 +34,6 @@ scenario:
     - dependency
     - syntax
     - create
-    - prepare
     - converge
     - idempotence
     - check

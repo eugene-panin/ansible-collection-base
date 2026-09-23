@@ -27,6 +27,28 @@ jobs:
       - name: ansible-lint
         run: ansible-lint --profile production
 
+  molecule:
+    name: molecule
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install molecule
+        run: >-
+          python -m pip install --upgrade
+          ansible-core molecule 'molecule-plugins[docker]' docker
+
+      - name: Load the wireguard kernel module
+        run: sudo modprobe wireguard && lsmod | grep wireguard
+
+      - name: molecule test
+        run: molecule test
+        working-directory: roles/wireguard
+
   build:
     name: build
     runs-on: ubuntu-latest

@@ -38,11 +38,39 @@
       vars:
         _wireguard_rendered_text: "{{ _wireguard_rendered.content | b64decode }}"
 
-    - name: Collect service facts
-      ansible.builtin.service_facts:
+    - name: Query the interface unit state
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - show
+          - wg-quick@wg0.service
+          - --property=UnitFileState
+          - --property=ActiveState
+          - --value
+      register: _wireguard_unit
+      changed_when: false
+      check_mode: false
 
-    - name: Assert the interface unit is enabled
+    - name: Assert the interface unit is enabled and running
       ansible.builtin.assert:
         that:
-          - ansible_facts.services['wg-quick@wg0.service'].status == 'enabled'
+          - "'enabled' in _wireguard_unit.stdout_lines"
+          - "'active' in _wireguard_unit.stdout_lines"
+        quiet: true
+
+    - name: Query the configured peers
+      ansible.builtin.command:
+        argv:
+          - wg
+          - show
+          - wg0
+          - peers
+      register: _wireguard_wg_peers
+      changed_when: false
+      check_mode: false
+
+    - name: Assert the peer is loaded into the running interface
+      ansible.builtin.assert:
+        that:
+          - "'nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=' in _wireguard_wg_peers.stdout_lines"
         quiet: true
