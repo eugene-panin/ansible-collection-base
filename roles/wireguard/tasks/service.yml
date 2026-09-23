@@ -5,3 +5,28 @@
     enabled: true
     state: started
   when: not (ansible_check_mode and _wireguard_install is changed)
+
+- name: Read the peers the interface is actually serving
+  ansible.builtin.command:
+    argv:
+      - wg
+      - show
+      - "{{ wireguard_interface }}"
+      - peers
+  register: _wireguard_running_peers
+  when: not (ansible_check_mode and _wireguard_install is changed)
+  changed_when: false
+  check_mode: false
+
+- name: Apply the configured peers to the running interface
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail
+      && wg syncconf {{ wireguard_interface | quote }}
+      <(wg-quick strip {{ wireguard_interface | quote }})
+    executable: /bin/bash
+  when:
+    - _wireguard_running_peers.stdout_lines is defined
+    - (wireguard_peers | map(attribute='public_key') | map('trim') | sort)
+      != (_wireguard_running_peers.stdout_lines | map('trim') | sort)
+  changed_when: true

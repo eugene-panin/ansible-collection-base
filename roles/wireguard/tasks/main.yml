@@ -31,6 +31,9 @@
   ansible.builtin.include_tasks: configure.yml
   tags: [wireguard, config]
 
+- name: Apply pending restarts before checking the running interface
+  ansible.builtin.meta: flush_handlers
+
 - name: Manage service
   ansible.builtin.include_tasks: service.yml
   tags: [wireguard, service]
