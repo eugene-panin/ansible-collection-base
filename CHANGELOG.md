@@ -3,9 +3,9 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-09-23
 
-### Changed
+### Breaking changes
 
 - Requires ansible-core 2.19 or later and `community.general` 10.0.0 or later.
   0.1.0 claimed 2.15 and 8.0.0, neither of which was ever tested. CI now runs
