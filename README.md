@@ -97,14 +97,23 @@ installable on a host that has nothing else on it.
 
 ## Development
 
+Everything runs locally in Docker, the same way CI runs it:
+
 ```bash
-yamllint .
-ansible-lint --profile production
-cd roles/<role> && molecule test
+make deps                                  # community.general
+make lint                                  # yamllint and ansible-lint, production profile
+make sanity                                # ansible-test sanity
+make test ROLE=wireguard                   # every scenario of one role, Ubuntu 24.04
+make test ROLE=wireguard SCENARIO='-s firewall'
+make matrix ROLE=wireguard_client          # Ubuntu 24.04, 22.04 and Debian 12
+make test-all                              # every role
 ```
 
-`ansible-lint` runs the production profile; if it fails, the code is fixed
-rather than the rule being skipped.
+The `wireguard` scenarios need the WireGuard kernel module on the Docker host.
+Docker Desktop and GitHub's Ubuntu runners have it.
+
+CI runs every role on three distributions and on the oldest supported
+ansible-core. A release goes out only from a green run.
 
 ## License
 
