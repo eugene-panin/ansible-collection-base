@@ -47,7 +47,8 @@ argument_specs:
         default: true
         description:
           - Manage ufw rules for this interface. Requires ufw to be installed.
-          - When false the role touches no firewall state.
+          - When false the role touches no firewall state, which leaves any
+            rule it added earlier in place.
       wireguard_allow_mesh_traffic:
         type: bool
         default: true
@@ -55,6 +56,7 @@ argument_specs:
           - Accept everything arriving through the tunnel.
           - Without it a default-deny host completes the handshake and then
             drops the traffic the tunnel was built for.
+          - Setting it back to false removes the rule again.
           - Ignored when O(wireguard_manage_firewall=false).
       wireguard_private_key_path:
         type: str

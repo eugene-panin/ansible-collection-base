@@ -1,0 +1,19 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read the ufw rules
+      ansible.builtin.slurp:
+        src: /etc/ufw/user.rules
+      register: _wireguard_rules
+
+    - name: Assert the mesh rule is gone and the listen port survived
+      ansible.builtin.assert:
+        that:
+          - "'-i wg0 -j ACCEPT' not in _wireguard_rules_text"
+          - "'--dport 51820 -j ACCEPT' in _wireguard_rules_text"
+        quiet: true
+      vars:
+        _wireguard_rules_text: "{{ _wireguard_rules.content | b64decode }}"

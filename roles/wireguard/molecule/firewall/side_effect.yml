@@ -1,0 +1,21 @@
+---
+- name: Turn the mesh rule off
+  hosts: all
+  become: true
+  vars:
+    wireguard_address: 10.10.0.1/24
+    wireguard_manage_firewall: true
+    wireguard_allow_mesh_traffic: false
+  pre_tasks:
+    - name: Read the ufw rules while the mesh rule is still wanted
+      ansible.builtin.slurp:
+        src: /etc/ufw/user.rules
+      register: _wireguard_rules_before
+
+    - name: Assert the mesh rule was added
+      ansible.builtin.assert:
+        that:
+          - "'-i wg0 -j ACCEPT' in _wireguard_rules_before.content | b64decode"
+        quiet: true
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"

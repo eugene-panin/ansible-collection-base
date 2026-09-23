@@ -46,7 +46,7 @@ jobs:
         run: sudo modprobe wireguard && lsmod | grep wireguard
 
       - name: molecule test
-        run: molecule test
+        run: molecule test --all
         working-directory: roles/wireguard
 
   build:

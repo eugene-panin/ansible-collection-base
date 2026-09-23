@@ -1,0 +1,10 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    wireguard_address: 10.10.0.1/24
+    wireguard_manage_firewall: true
+    wireguard_allow_mesh_traffic: true
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
