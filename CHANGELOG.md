@@ -10,6 +10,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Requires ansible-core 2.19 or later and `community.general` 10.0.0 or later.
   0.1.0 claimed 2.15 and 8.0.0, neither of which was ever tested. CI now runs
   the roles on 2.19 and on the latest release.
+
+### Changed
+
 - CI runs every role on Ubuntu 22.04, Ubuntu 24.04 and Debian 12, the
   platforms the role metadata lists. 0.1.0 was only tested on 24.04.
 
