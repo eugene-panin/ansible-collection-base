@@ -7,9 +7,6 @@
     group: root
     mode: '0700'
 
-# shell rather than command: the key is written through a redirect so it never
-# passes through Ansible's output or fact cache. `creates` makes this run once
-# — a second run would mint a new key and invalidate every peer.
 - name: Generate the interface private key
   ansible.builtin.shell:
     cmd: "umask 077 && wg genkey > {{ wireguard_private_key_path | quote }}"
@@ -30,7 +27,6 @@
     group: root
     mode: '0600'
   vars:
-    # Empty in check mode on a host with no key yet: nothing is written then.
     _wireguard_private_key: "{{ _wireguard_private_key_slurp.content | default('') | b64decode | trim }}"
   no_log: true
   notify: "restart wireguard"

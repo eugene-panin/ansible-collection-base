@@ -1,4 +1,3 @@
 ---
-# Metapackage; pulls in wireguard-tools, which provides wg and wg-quick.
 _wireguard_packages:
   - wireguard

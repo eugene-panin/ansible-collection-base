@@ -2,9 +2,6 @@
 driver:
   name: docker
 platforms:
-  # WireGuard needs NET_ADMIN and /dev/net/tun to bring an interface up, and
-  # the wireguard kernel module has to be present on the Docker host — this
-  # scenario will not pass on a host without it.
   - name: instance-ubuntu2404
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     command: ""
