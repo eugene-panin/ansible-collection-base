@@ -6,9 +6,16 @@
   when: ansible_facts['os_family'] == 'Debian'
   changed_when: false
   check_mode: false
+  register: _wireguard_apt_cache
+  until: _wireguard_apt_cache is succeeded
+  retries: 30
+  delay: 10
 
 - name: Ensure WireGuard packages are installed
   ansible.builtin.package:
     name: "{{ _wireguard_packages }}"
     state: present
   register: _wireguard_install
+  until: _wireguard_install is succeeded
+  retries: 30
+  delay: 10
