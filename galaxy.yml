@@ -1,0 +1,25 @@
+---
+namespace: eugene_panin
+name: base
+version: 0.1.0
+readme: README.md
+authors:
+  - Evgenii Panin <e.panin@gmail.com>
+description: >-
+  Host foundation layer: the roles a machine needs before any workload stack
+  is deployed on top of it.
+license:
+  - MIT
+repository: https://github.com/eugene-panin/ansible-collection-base
+issues: https://github.com/eugene-panin/ansible-collection-base/issues
+tags:
+  - linux
+  - networking
+  - wireguard
+dependencies:
+  community.general: ">=8.0.0"
+build_ignore:
+  - .github
+  - .gitignore
+  - .ansible-lint
+  - .yamllint

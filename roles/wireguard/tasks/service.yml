@@ -1,0 +1,6 @@
+---
+- name: Ensure the WireGuard interface is enabled and running
+  ansible.builtin.systemd_service:
+    name: "wg-quick@{{ wireguard_interface }}"
+    enabled: true
+    state: started

@@ -1,0 +1,48 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stat the rendered interface configuration
+      ansible.builtin.stat:
+        path: /etc/wireguard/wg0.conf
+      register: _wireguard_conf
+
+    - name: Stat the generated private key
+      ansible.builtin.stat:
+        path: /etc/wireguard/wg0.key
+      register: _wireguard_key
+
+    - name: Assert both files exist and are root-only
+      ansible.builtin.assert:
+        that:
+          - _wireguard_conf.stat.exists
+          - _wireguard_conf.stat.mode == '0600'
+          - _wireguard_key.stat.exists
+          - _wireguard_key.stat.mode == '0600'
+        quiet: true
+
+    - name: Read the rendered configuration
+      ansible.builtin.slurp:
+        src: /etc/wireguard/wg0.conf
+      register: _wireguard_rendered
+      no_log: true
+
+    - name: Assert the peer made it into the configuration
+      ansible.builtin.assert:
+        that:
+          - "'10.10.0.2/32' in _wireguard_rendered_text"
+          - "'ListenPort = 51820' in _wireguard_rendered_text"
+        quiet: true
+      vars:
+        _wireguard_rendered_text: "{{ _wireguard_rendered.content | b64decode }}"
+
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert the interface unit is enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['wg-quick@wg0.service'].status == 'enabled'
+        quiet: true

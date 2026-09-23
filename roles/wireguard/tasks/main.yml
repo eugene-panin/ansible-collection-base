@@ -1,0 +1,36 @@
+---
+- name: Validate role inputs
+  ansible.builtin.assert:
+    that:
+      - wireguard_interface | length > 0
+      - wireguard_address | length > 0
+      - wireguard_listen_port | int > 0
+      - wireguard_peers | type_debug == "list"
+    fail_msg: >-
+      wireguard_interface, wireguard_address and wireguard_listen_port must be
+      set, and wireguard_peers must be a list
+    quiet: true
+
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_facts['distribution'] }}-{{ ansible_facts['distribution_major_version'] }}.yml"
+        - "{{ ansible_facts['distribution'] }}.yml"
+        - "{{ ansible_facts['os_family'] }}.yml"
+        - default.yml
+      paths:
+        - "{{ role_path }}/vars"
+
+- name: Install
+  ansible.builtin.include_tasks: install.yml
+  tags: [wireguard, install]
+
+- name: Configure
+  ansible.builtin.include_tasks: configure.yml
+  tags: [wireguard, config]
+
+- name: Manage service
+  ansible.builtin.include_tasks: service.yml
+  tags: [wireguard, service]

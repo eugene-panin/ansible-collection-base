@@ -1,0 +1,27 @@
+---
+# Interface name. Also names the config file (/etc/wireguard/<name>.conf),
+# the private key file and the systemd unit instance (wg-quick@<name>).
+wireguard_interface: wg0
+
+# This host's address on the mesh, with prefix length.
+wireguard_address: 10.10.0.1/24
+
+# UDP port the interface listens on.
+wireguard_listen_port: 51820
+
+# Peers permitted to connect. Each entry:
+#   public_key           (required) the peer's WireGuard public key
+#   allowed_ips          (required) addresses routed to that peer, e.g. 10.10.0.2/32
+#   name                 (optional) comment written above the block
+#   endpoint             (optional) host:port, for peers this host dials out to
+#   persistent_keepalive (optional) seconds, for peers behind NAT
+wireguard_peers: []
+
+# Open wireguard_listen_port with ufw. Requires ufw to be installed. Set to
+# false when the firewall is managed elsewhere: the role then touches no
+# firewall state at all.
+wireguard_manage_firewall: true
+
+# Generated on first run and never rotated by this role — rotating it would
+# invalidate every peer's configuration.
+wireguard_private_key_path: "/etc/wireguard/{{ wireguard_interface }}.key"

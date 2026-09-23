@@ -1,0 +1,44 @@
+---
+- name: Ensure the WireGuard configuration directory exists
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+# shell rather than command: the key is written through a redirect so it never
+# passes through Ansible's output or fact cache. `creates` makes this run once
+# — a second run would mint a new key and invalidate every peer.
+- name: Generate the interface private key
+  ansible.builtin.shell:
+    cmd: "umask 077 && wg genkey > {{ wireguard_private_key_path | quote }}"
+    creates: "{{ wireguard_private_key_path }}"
+
+- name: Read the interface private key
+  ansible.builtin.slurp:
+    src: "{{ wireguard_private_key_path }}"
+  register: _wireguard_private_key_slurp
+  when: not ansible_check_mode
+  no_log: true
+
+- name: Render the interface configuration
+  ansible.builtin.template:
+    src: wg.conf.j2
+    dest: "/etc/wireguard/{{ wireguard_interface }}.conf"
+    owner: root
+    group: root
+    mode: '0600'
+  vars:
+    # Empty in check mode on a host with no key yet: nothing is written then.
+    _wireguard_private_key: "{{ _wireguard_private_key_slurp.content | default('') | b64decode | trim }}"
+  no_log: true
+  notify: "restart wireguard"
+
+- name: Allow the WireGuard listen port
+  community.general.ufw:
+    rule: allow
+    port: "{{ wireguard_listen_port | string }}"
+    proto: udp
+    comment: "WireGuard {{ wireguard_interface }}"
+  when: wireguard_manage_firewall | bool
