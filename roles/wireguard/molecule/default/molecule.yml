@@ -26,6 +26,7 @@ provisioner:
       callback_result_format: yaml
   playbooks:
     converge: converge.yml
+    side_effect: side_effect.yml
     verify: verify.yml
 verifier:
   name: ansible
@@ -38,5 +39,6 @@ scenario:
     - converge
     - idempotence
     - check
+    - side_effect
     - verify
     - destroy

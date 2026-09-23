@@ -1,0 +1,79 @@
+---
+- name: Drift the running interface away from its configuration
+  hosts: all
+  become: true
+  vars:
+    wireguard_address: 10.10.0.1/24
+    wireguard_manage_firewall: false
+    wireguard_peers:
+      - name: laptop
+        public_key: nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=
+        allowed_ips: 10.10.0.2/32
+  pre_tasks:
+    - name: Note when the interface unit last started
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - show
+          - wg-quick@wg0.service
+          - --property=ActiveEnterTimestampMonotonic
+          - --value
+      register: _wireguard_drift_started_before
+      changed_when: false
+
+    - name: Remove the peer from the running interface behind the role's back
+      ansible.builtin.command:
+        argv:
+          - wg
+          - set
+          - wg0
+          - peer
+          - nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=
+          - remove
+      changed_when: true
+
+    - name: Read the peers after the drift
+      ansible.builtin.command:
+        argv:
+          - wg
+          - show
+          - wg0
+          - peers
+      register: _wireguard_drift_peers
+      changed_when: false
+
+    - name: Assert the interface really lost the peer
+      ansible.builtin.assert:
+        that:
+          - _wireguard_drift_peers.stdout_lines | length == 0
+        quiet: true
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+  post_tasks:
+    - name: Read the peers after the role ran
+      ansible.builtin.command:
+        argv:
+          - wg
+          - show
+          - wg0
+          - peers
+      register: _wireguard_drift_peers_after
+      changed_when: false
+
+    - name: Note when the interface unit last started, again
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - show
+          - wg-quick@wg0.service
+          - --property=ActiveEnterTimestampMonotonic
+          - --value
+      register: _wireguard_drift_started_after
+      changed_when: false
+
+    - name: Assert the peer is back and the tunnel was not torn down to get it there
+      ansible.builtin.assert:
+        that:
+          - "'nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=' in _wireguard_drift_peers_after.stdout_lines"
+          - _wireguard_drift_started_after.stdout == _wireguard_drift_started_before.stdout
+        quiet: true
