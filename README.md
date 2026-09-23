@@ -13,10 +13,11 @@ Consul, Nomad, Vault or anything from another collection.
 
 ## Requirements
 
-- ansible-core >= 2.15
-- `community.general` >= 8.0.0 (pulled in automatically)
-- Debian or Ubuntu on the managed host. Other distributions get
-  `wireguard-tools` from `vars/default.yml` and are untested.
+- ansible-core >= 2.19; CI runs 2.19 and the latest release
+- `community.general` >= 10.0.0 (pulled in automatically)
+- Ubuntu 22.04, Ubuntu 24.04 or Debian 12 on the managed host; CI runs every
+  role on all three. Other distributions get `wireguard-tools` from
+  `vars/default.yml` and are untested.
 - `ufw` on the managed host, if you leave `wireguard_manage_firewall` on.
   Turn it off and the roles touch no firewall state at all.
 

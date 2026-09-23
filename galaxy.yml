@@ -17,7 +17,7 @@ tags:
   - networking
   - wireguard
 dependencies:
-  community.general: ">=8.0.0"
+  community.general: ">=10.0.0"
 build_ignore:
   - .github
   - .gitignore

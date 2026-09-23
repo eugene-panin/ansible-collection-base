@@ -5,7 +5,7 @@ galaxy_info:
   author: Evgenii Panin
   description: WireGuard interface with a generated-once private key and declarative peers
   license: MIT
-  min_ansible_version: "2.15"
+  min_ansible_version: "2.19"
   platforms:
     - name: Ubuntu
       versions:
