@@ -34,6 +34,7 @@ scenario:
     - dependency
     - syntax
     - create
+    - check
     - converge
     - idempotence
     - check

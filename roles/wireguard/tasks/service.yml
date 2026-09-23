@@ -4,3 +4,4 @@
     name: "wg-quick@{{ wireguard_interface }}"
     enabled: true
     state: started
+  when: not (ansible_check_mode and _wireguard_install is changed)
