@@ -37,6 +37,23 @@
     quiet: true
   when: not ansible_check_mode
 
+- name: Derive the interface public key
+  ansible.builtin.command:
+    argv:
+      - wg
+      - pubkey
+    stdin: "{{ _wireguard_private_key_slurp.content | default('') | b64decode | trim }}"
+  register: _wireguard_pubkey
+  when: _wireguard_private_key_slurp.content is defined
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Publish the interface public key
+  ansible.builtin.set_fact:
+    wireguard_public_key: "{{ _wireguard_pubkey.stdout | trim }}"
+  when: _wireguard_pubkey.stdout is defined
+
 - name: Render the interface configuration
   ansible.builtin.template:
     src: wg.conf.j2

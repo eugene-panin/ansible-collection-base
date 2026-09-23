@@ -1,0 +1,101 @@
+---
+- name: Validate role inputs
+  ansible.builtin.assert:
+    that:
+      - wireguard_client_list | type_debug == "list"
+      - wireguard_client_list | map(attribute='name') | list | length == wireguard_client_list | length
+      - wireguard_client_list | map(attribute='address') | list | length == wireguard_client_list | length
+    fail_msg: "wireguard_client_list must be a list of dicts with name and address"
+    quiet: true
+
+- name: Ensure the client key directory exists
+  ansible.builtin.file:
+    path: "{{ wireguard_client_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Generate the client private keys
+  ansible.builtin.shell:
+    cmd: >-
+      umask 077
+      && wg genkey > {{ (wireguard_client_dir ~ '/' ~ item.name ~ '.key') | quote }}.new
+      && mv {{ (wireguard_client_dir ~ '/' ~ item.name ~ '.key') | quote }}.new
+      {{ (wireguard_client_dir ~ '/' ~ item.name ~ '.key') | quote }}
+    creates: "{{ wireguard_client_dir }}/{{ item.name }}.key"
+  loop: "{{ wireguard_client_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Check which client keys exist
+  ansible.builtin.stat:
+    path: "{{ wireguard_client_dir }}/{{ item.name }}.key"
+  register: _wireguard_client_stat
+  loop: "{{ wireguard_client_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  check_mode: false
+
+- name: Read the client private keys
+  ansible.builtin.slurp:
+    src: "{{ wireguard_client_dir }}/{{ item.item.name }}.key"
+  register: _wireguard_client_slurp
+  loop: "{{ _wireguard_client_stat.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.stat.exists
+  no_log: true
+
+- name: Derive the client public keys
+  ansible.builtin.command:
+    argv:
+      - wg
+      - pubkey
+    stdin: "{{ item.content | b64decode | trim }}"
+  register: _wireguard_client_pubkey
+  loop: "{{ _wireguard_client_slurp.results }}"
+  loop_control:
+    label: "{{ item.item.item.name }}"
+  when: item.content is defined
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Reset the collected client data
+  ansible.builtin.set_fact:
+    wireguard_client_peers: []
+    _wireguard_client_private_keys: {}
+
+- name: Collect the client keys
+  ansible.builtin.set_fact:
+    wireguard_client_peers: >-
+      {{ wireguard_client_peers + [{
+        'name': item.item.item.item.name,
+        'public_key': item.stdout | trim,
+        'allowed_ips': item.item.item.item.address,
+      }] }}
+    _wireguard_client_private_keys: >-
+      {{ _wireguard_client_private_keys
+         | combine({item.item.item.item.name: item.item.content | b64decode | trim}) }}
+  loop: "{{ _wireguard_client_pubkey.results }}"
+  loop_control:
+    label: "{{ item.item.item.item.name }}"
+  when: item.stdout is defined
+  no_log: true
+
+- name: Render the client configurations
+  ansible.builtin.template:
+    src: client.conf.j2
+    dest: "{{ wireguard_client_dir }}/{{ item.name }}.conf"
+    owner: root
+    group: root
+    mode: '0600'
+  loop: "{{ wireguard_client_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - wireguard_public_key is defined
+    - wireguard_client_endpoint | length > 0
+    - item.name in _wireguard_client_private_keys
+  no_log: true

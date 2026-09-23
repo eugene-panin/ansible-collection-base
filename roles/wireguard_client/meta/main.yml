@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: wireguard_client
+  namespace: eugene_panin
+  author: Evgenii Panin
+  description: Client keypairs and importable .conf files, generated on the WireGuard host
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bookworm
+  galaxy_tags:
+    - wireguard
+    - vpn
+    - networking
+dependencies: []

@@ -1,0 +1,13 @@
+{{ ansible_managed | comment }}
+[Interface]
+PrivateKey = {{ _wireguard_client_private_keys[item.name] }}
+Address = {{ item.address }}
+{% if wireguard_client_dns %}
+DNS = {{ wireguard_client_dns | join(', ') }}
+{% endif %}
+
+[Peer]
+PublicKey = {{ wireguard_public_key }}
+AllowedIPs = {{ item.allowed_ips | default(wireguard_client_allowed_ips) }}
+Endpoint = {{ wireguard_client_endpoint }}
+PersistentKeepalive = {{ wireguard_client_persistent_keepalive }}

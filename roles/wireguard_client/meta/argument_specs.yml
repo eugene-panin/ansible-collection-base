@@ -1,0 +1,59 @@
+---
+argument_specs:
+  main:
+    short_description: Generate WireGuard client keys and configurations
+    description:
+      - Runs on the WireGuard host, which already has wireguard-tools.
+      - Generates a keypair per client once, publishes the peer list for the
+        wireguard role to render, and writes an importable configuration per
+        client.
+      - Client private keys are generated on the host and stay there. Fetch the
+        configurations to wherever they are needed.
+      - Run it once before the wireguard role to collect the peer list, and
+        again afterwards, when the host public key is known, to render the
+        configurations.
+    options:
+      wireguard_client_list:
+        type: list
+        elements: dict
+        default: []
+        description: Clients to issue keys and configurations for.
+        options:
+          name:
+            type: str
+            required: true
+            description: Used for the key and configuration file names.
+          address:
+            type: str
+            required: true
+            description: The client's address on the mesh, with prefix length.
+          allowed_ips:
+            type: str
+            description:
+              - What the client routes through the tunnel.
+              - Defaults to O(wireguard_client_allowed_ips).
+      wireguard_client_dir:
+        type: str
+        default: /etc/wireguard/clients
+        description: Where keys and configurations are kept, root-only.
+      wireguard_client_endpoint:
+        type: str
+        default: ""
+        description:
+          - host:port the clients dial. Configurations are not rendered until
+            it is set.
+      wireguard_client_allowed_ips:
+        type: str
+        default: 10.10.0.0/24
+        description:
+          - Default route set for clients that do not name their own.
+          - Widen it to 0.0.0.0/0 to send all traffic through the tunnel.
+      wireguard_client_dns:
+        type: list
+        elements: str
+        default: []
+        description: Resolvers and search domains written into the client.
+      wireguard_client_persistent_keepalive:
+        type: int
+        default: 25
+        description: Seconds between keepalives, for clients behind NAT.
