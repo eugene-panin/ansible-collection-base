@@ -51,7 +51,7 @@ and in `meta/argument_specs.yml`.
         wireguard_listen_port: 51820
         wireguard_peers:
           - name: laptop
-            public_key: Pa1Lg3oieQOdJaAEko1C80S34kTViChY3O7pkQQ6LlU=
+            public_key: EXAMPLEKeyReplaceMeWithYourOwnPeerPubKey0000=
             allowed_ips: 10.77.0.2/32
 ```
 
