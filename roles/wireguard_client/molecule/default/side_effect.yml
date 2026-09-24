@@ -1,4 +1,37 @@
 ---
+- name: Hold back one of the two things a configuration needs, each in turn
+  hosts: all
+  become: true
+  tasks:
+    - name: Apply the role knowing the endpoint but not the host key
+      ansible.builtin.include_role:
+        name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+      vars:
+        wireguard_client_list:
+          - name: laptop
+            address: 10.10.0.2/32
+        wireguard_client_endpoint: vpn.example.org:51820
+
+    - name: Apply the role knowing the host key but not the endpoint
+      ansible.builtin.include_role:
+        name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+      vars:
+        wireguard_client_list:
+          - name: laptop
+            address: 10.10.0.2/32
+        wireguard_public_key: nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=
+
+    - name: Stat the laptop configuration
+      ansible.builtin.stat:
+        path: /etc/wireguard/clients/laptop.conf
+      register: _wireguard_client_half
+
+    - name: Assert nothing was rendered without both the host key and the endpoint
+      ansible.builtin.assert:
+        that:
+          - not _wireguard_client_half.stat.exists
+        quiet: true
+
 - name: Render the configurations once the host key is known
   hosts: all
   become: true
@@ -37,4 +70,18 @@
           - wireguard_client_peers | map(attribute='name') | sort == ['laptop', 'phone']
           - wireguard_client_peers | map(attribute='allowed_ips') | sort == ['10.10.0.2/32', '10.10.0.3/32']
           - wireguard_client_peers | map(attribute='public_key') | select('match', '^[A-Za-z0-9+/]{43}=$') | list | length == 2
+        quiet: true
+
+    - name: Derive the laptop public key from its private key
+      ansible.builtin.shell:
+        cmd: set -o pipefail && wg pubkey < /etc/wireguard/clients/laptop.key
+        executable: /bin/bash
+      register: _wireguard_client_laptop_pub
+      changed_when: false
+
+    - name: Assert the published public key belongs to the laptop's private key
+      ansible.builtin.assert:
+        that:
+          - (wireguard_client_peers | selectattr('name', 'equalto', 'laptop') | first).public_key
+            == _wireguard_client_laptop_pub.stdout | trim
         quiet: true

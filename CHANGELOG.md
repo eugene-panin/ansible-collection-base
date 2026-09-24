@@ -3,6 +3,18 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-09-24
+
+### Fixed
+
+- `wireguard_client` tests did not catch three regressions they claimed to:
+  rendering without the host key, rendering without the endpoint, and
+  publishing a public key that does not belong to the client's private key.
+  Each guard hid the other, and the key was only checked for its format.
+  The scenario now holds back each of the two separately and compares the
+  published key with `wg pubkey` of the private one. The role itself did not
+  change.
+
 ## [0.3.0] - 2026-09-24
 
 ### Added
