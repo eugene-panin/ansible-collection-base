@@ -3,6 +3,15 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.3] - 2026-09-25
+
+### Fixed
+
+- `wireguard_client` ran `wg` without installing `wireguard-tools`, so on a
+  host where the `wireguard` role had not run first it failed. Its test had
+  installed the package in prepare and hid it; prepare now checks the package
+  is absent. Found by the `single_node` playbook of `eugene_panin.hashistack`.
+
 ## [0.3.2] - 2026-09-24
 
 ### Changed

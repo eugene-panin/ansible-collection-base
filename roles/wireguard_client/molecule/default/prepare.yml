@@ -3,9 +3,13 @@
   hosts: all
   become: true
   tasks:
-    - name: Ensure wireguard-tools is installed
-      ansible.builtin.apt:
-        name: wireguard-tools
-        state: present
-        update_cache: true
-        cache_valid_time: 3600
+    - name: Look for wg before the role runs
+      ansible.builtin.stat:
+        path: /usr/bin/wg
+      register: _wireguard_client_wg
+
+    - name: Assert the image does not ship wg, so the role has to install it
+      ansible.builtin.assert:
+        that:
+          - not _wireguard_client_wg.stat.exists
+        quiet: true

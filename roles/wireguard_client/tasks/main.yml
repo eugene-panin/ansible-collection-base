@@ -8,6 +8,17 @@
     fail_msg: "wireguard_client_list must be a list of dicts with name and address"
     quiet: true
 
+- name: Ensure wireguard-tools is installed
+  ansible.builtin.apt:
+    name: wireguard-tools
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: _wireguard_client_apt
+  until: _wireguard_client_apt is succeeded
+  retries: 30
+  delay: 10
+
 - name: Ensure the client key directory exists
   ansible.builtin.file:
     path: "{{ wireguard_client_dir }}"
