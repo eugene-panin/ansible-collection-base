@@ -3,6 +3,13 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.2] - 2026-09-24
+
+### Changed
+
+- The Molecule scenarios are no longer shipped in the Galaxy artifact.
+- CI actions moved off Node 20: checkout v5, setup-python v6, upload-artifact v6.
+
 ## [0.3.1] - 2026-09-24
 
 ### Fixed
