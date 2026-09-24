@@ -1,0 +1,103 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read the daemon configuration
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: _docker_test_config
+
+    - name: Assert the rejected configuration never replaced the working one
+      ansible.builtin.assert:
+        that:
+          - "(_docker_test_config.content | b64decode | from_json) == {'log-driver': 'local'}"
+        quiet: true
+
+    - name: Ask the daemon which version it runs and how it logs
+      ansible.builtin.command:
+        argv:
+          - docker
+          - info
+          - --format
+          - "{{ '{{' }}.ServerVersion{{ '}}' }} {{ '{{' }}.LoggingDriver{{ '}}' }}"
+      register: _docker_test_info
+      changed_when: false
+
+    - name: Assert the upgrade restarted the daemon onto the new release, logging with local
+      ansible.builtin.assert:
+        that:
+          - _docker_test_info.stdout == '29.8.1 local'
+        quiet: true
+
+    - name: Read the package selections
+      ansible.builtin.command:
+        argv:
+          - dpkg-query
+          - --show
+          - --showformat
+          - "${Package} ${db:Status-Want} ${db:Status-Status}\n"
+      register: _docker_test_packages
+      changed_when: false
+
+    - name: Assert the engine packages are held and nothing it only recommends is installed
+      ansible.builtin.assert:
+        that:
+          - "'docker-ce hold installed' in _docker_test_packages.stdout_lines"
+          - "'docker-ce-cli hold installed' in _docker_test_packages.stdout_lines"
+          - "'containerd.io hold installed' in _docker_test_packages.stdout_lines"
+          - _docker_test_packages.stdout is not search('^(docker-buildx-plugin|docker-compose-plugin|docker-ce-rootless-extras) \\S+ installed', multiline=True)
+        quiet: true
+
+    - name: Ensure a static busybox is available to build an image from
+      ansible.builtin.apt:
+        name: busybox-static
+        state: present
+
+    - name: Ensure the image root exists
+      ansible.builtin.file:
+        path: /tmp/probe-root/bin
+        state: directory
+        mode: '0755'
+
+    - name: Put busybox in the image root
+      ansible.builtin.copy:
+        src: /bin/busybox
+        dest: /tmp/probe-root/bin/busybox
+        remote_src: true
+        mode: '0755'
+
+    - name: Import the image root as an image, with no registry involved
+      ansible.builtin.shell:
+        cmd: set -o pipefail && tar -C /tmp/probe-root -c . | docker import - probe:local
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Run a container from it
+      ansible.builtin.command:
+        argv:
+          - docker
+          - run
+          - --name
+          - probe
+          - probe:local
+          - /bin/busybox
+          - echo
+          - hello from a container
+      changed_when: true
+
+    - name: Read the container's log back through the local driver
+      ansible.builtin.command:
+        argv:
+          - docker
+          - logs
+          - probe
+      register: _docker_test_logs
+      changed_when: false
+
+    - name: Assert the container ran and its output was kept
+      ansible.builtin.assert:
+        that:
+          - _docker_test_logs.stdout == 'hello from a container'
+        quiet: true

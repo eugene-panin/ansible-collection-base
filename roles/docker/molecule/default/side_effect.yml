@@ -1,0 +1,33 @@
+---
+- name: Hand the role a daemon configuration Docker does not accept
+  hosts: all
+  become: true
+  tasks:
+    - name: Apply the role with an unknown daemon option
+      block:
+        - name: Apply the role
+          ansible.builtin.include_role:
+            name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+          vars:
+            docker_version: 29.8.0
+            docker_daemon_config:
+              log-driver: local
+              no-such-option: true
+
+        - name: Fail, the configuration should have been rejected
+          ansible.builtin.fail:
+            msg: dockerd --validate accepted an unknown option
+      rescue:
+        - name: Assert it stopped at validation
+          ansible.builtin.assert:
+            that:
+              - ansible_failed_task.name == 'Render the daemon configuration'
+            quiet: true
+
+- name: Upgrade to the next release
+  hosts: all
+  become: true
+  vars:
+    docker_version: 29.8.1
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"

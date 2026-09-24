@@ -1,0 +1,62 @@
+---
+- name: Check whether Docker is already installed
+  ansible.builtin.stat:
+    path: /usr/bin/dockerd
+  register: _docker_binary_stat
+  check_mode: false
+
+- name: Ensure the keyrings directory exists
+  ansible.builtin.file:
+    path: "{{ _docker_keyring | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Fetch the key Docker signs its repository with
+  ansible.builtin.get_url:
+    url: "{{ _docker_repo_url }}/gpg"
+    dest: "{{ _docker_keyring }}"
+    owner: root
+    group: root
+    mode: '0644'
+    force: false
+  register: _docker_key
+  until: _docker_key is succeeded
+  retries: 3
+  delay: 5
+
+- name: Ensure the Docker repository is configured
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by={{ _docker_keyring }}] {{ _docker_repo_url }}
+      {{ ansible_facts['distribution_release'] }} stable
+    filename: docker
+    update_cache: true
+    state: present
+  register: _docker_repo
+  until: _docker_repo is succeeded
+  retries: 3
+  delay: 10
+  when: _docker_live | bool
+
+- name: Install the engine, its CLI and containerd, and nothing they only recommend
+  ansible.builtin.apt:
+    name: "{{ _docker_packages }}"
+    state: present
+    install_recommends: false
+    allow_change_held_packages: true
+    cache_valid_time: 3600
+  register: _docker_apt
+  until: _docker_apt is succeeded
+  retries: 30
+  delay: 10
+  when: _docker_live | bool
+  notify: "restart docker"
+
+- name: Hold the packages so an unattended upgrade does not restart every container
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: "{{ _docker_held }}"
+  when: _docker_live | bool

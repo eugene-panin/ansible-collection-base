@@ -1,0 +1,14 @@
+---
+_docker_live: "{{ not (ansible_check_mode and not _docker_binary_stat.stat.exists | default(false)) }}"
+_docker_distro: "{{ ansible_facts['distribution'] | lower }}"
+_docker_repo_url: "https://download.docker.com/linux/{{ _docker_distro }}"
+_docker_keyring: /etc/apt/keyrings/docker.asc
+
+_docker_packages:
+  - "docker-ce=5:{{ docker_version }}-*"
+  - "docker-ce-cli=5:{{ docker_version }}-*"
+  - containerd.io
+_docker_held:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io

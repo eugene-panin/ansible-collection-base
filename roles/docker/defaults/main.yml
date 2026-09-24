@@ -1,0 +1,5 @@
+---
+docker_version: 29.8.1
+
+docker_daemon_config:
+  log-driver: local

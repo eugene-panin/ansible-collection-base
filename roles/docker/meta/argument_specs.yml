@@ -1,0 +1,23 @@
+---
+argument_specs:
+  main:
+    short_description: Install Docker Engine and nothing else
+    description:
+      - Installs docker-ce, docker-ce-cli and containerd.io from Docker's apt
+        repository, without the packages they only recommend, and holds them.
+      - Renders /etc/docker/daemon.json, checked with dockerd --validate before
+        it replaces the running one.
+    options:
+      docker_version:
+        type: str
+        default: 29.8.1
+        description:
+          - Exact Docker Engine release. Changing it upgrades in place.
+      docker_daemon_config:
+        type: dict
+        default:
+          log-driver: local
+        description:
+          - Content of daemon.json.
+          - The default logging driver is C(local), which rotates; the
+            C(json-file) default of Docker does not.

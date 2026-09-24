@@ -3,6 +3,16 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `docker` role: Docker Engine from Docker's apt repository, and only the
+  engine, its CLI and containerd. Pinned to an exact release and held against
+  unattended upgrades. `daemon.json` is checked with `dockerd --validate`
+  before it replaces the running one; the default logging driver is `local`,
+  which rotates.
+
 ## [0.2.0] - 2026-09-23
 
 ### Breaking changes

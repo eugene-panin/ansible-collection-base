@@ -1,0 +1,26 @@
+---
+- name: Validate role inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'Debian'
+      - docker_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - docker_daemon_config | type_debug == 'dict'
+    fail_msg: >-
+      The role supports Debian and Ubuntu. docker_version is an exact release
+      such as 29.8.1, and docker_daemon_config a dict.
+    quiet: true
+
+- name: Install
+  ansible.builtin.include_tasks: install.yml
+  tags: [docker, install]
+
+- name: Configure
+  ansible.builtin.include_tasks: configure.yml
+  tags: [docker, config]
+
+- name: Apply pending restarts before checking the daemon
+  ansible.builtin.meta: flush_handlers
+
+- name: Manage service
+  ansible.builtin.include_tasks: service.yml
+  tags: [docker, service]
