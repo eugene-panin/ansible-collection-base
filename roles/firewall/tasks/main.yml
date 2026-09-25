@@ -47,7 +47,7 @@
     comment: "{{ item.comment | default(omit) }}"
   loop: "{{ firewall_allow }}"
   loop_control:
-    label: "{{ (item.port | string ~ '/' ~ item.proto | default('tcp')) if item.port is defined else 'all' }}{{ ' on ' ~ item.interface if item.interface is defined else '' }}"
+    label: "{{ item.port | default('all') }}{{ ' on ' ~ item.interface if item.interface is defined else '' }}"
   when: not ansible_check_mode or _firewall_apt is not changed
 
 - name: Deny incoming by default, allow outgoing
