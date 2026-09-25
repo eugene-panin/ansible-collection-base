@@ -1,5 +1,9 @@
 # eugene_panin.base
 
+[![CI](https://github.com/eugene-panin/ansible-collection-base/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/eugene-panin/ansible-collection-base/actions/workflows/ci.yml)
+[![Galaxy](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgalaxy.ansible.com%2Fapi%2Fv3%2Fplugin%2Fansible%2Fcontent%2Fpublished%2Fcollections%2Findex%2Feugene_panin%2Fbase%2F&query=%24.highest_version.version&label=galaxy&color=blue&cacheSeconds=3600)](https://galaxy.ansible.com/ui/repo/published/eugene_panin/base/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 Host foundation layer — what a machine needs before any workload stack sits
 on top of it. Deliberately usable on its own: nothing here depends on
 Consul, Nomad, Vault or anything from another collection.
