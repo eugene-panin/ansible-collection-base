@@ -1,0 +1,23 @@
+---
+argument_specs:
+  main:
+    short_description: Deny incoming by default, allow SSH and the declared ports
+    description:
+      - Installs ufw, allows SSH first, then the declared ports, sets incoming
+        to deny and outgoing to allow, and enables it.
+      - Rules other roles add, such as the WireGuard port from the wireguard
+        role, are left alone.
+    options:
+      firewall_ssh_port:
+        type: int
+        default: 22
+        description: SSH port, allowed before incoming is denied so the run cannot lock itself out.
+      firewall_allow:
+        type: list
+        elements: dict
+        default: []
+        description:
+          - Ports to allow in. Each rule has C(port), C(interface) or both, and
+            optionally C(proto) (tcp by default), C(from) for a source address
+            or network, and C(comment). A rule with an interface and no port
+            allows everything in on that interface.

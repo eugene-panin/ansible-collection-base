@@ -1,0 +1,52 @@
+---
+- name: Gather every host's addresses
+  hosts: all
+  gather_facts: true
+  tasks: []
+
+- name: Probe the target from outside
+  hosts: prober
+  gather_facts: false
+  vars:
+    _firewall_test_target: "{{ hostvars['instance-firewall']['ansible_facts']['default_ipv4']['address'] }}"
+  tasks:
+    - name: Reach the allowed port
+      ansible.builtin.uri:
+        url: "http://{{ _firewall_test_target }}:8443/"
+        timeout: 5
+
+    - name: Try the port that was not allowed
+      ansible.builtin.uri:
+        url: "http://{{ _firewall_test_target }}:8080/"
+        timeout: 5
+      register: _firewall_test_closed
+      failed_when: _firewall_test_closed.status | default(-1) != -1
+
+- name: Check the target still gets out
+  hosts: target
+  gather_facts: false
+  vars:
+    _firewall_test_prober: "{{ hostvars['prober']['ansible_facts']['default_ipv4']['address'] }}"
+  tasks:
+    - name: Reach the prober from the target
+      ansible.builtin.uri:
+        url: "http://{{ _firewall_test_prober }}:8080/"
+        timeout: 5
+
+    - name: Read the firewall state
+      ansible.builtin.command:
+        argv:
+          - ufw
+          - status
+          - verbose
+      register: _firewall_test_status
+      changed_when: false
+      become: true
+
+    - name: Assert it is on, denies incoming by default and allows SSH
+      ansible.builtin.assert:
+        that:
+          - "'Status: active' in _firewall_test_status.stdout"
+          - _firewall_test_status.stdout is search('Default. deny \\(incoming\\), allow \\(outgoing\\)')
+          - _firewall_test_status.stdout is search('22/tcp +ALLOW IN +Anywhere')
+        quiet: true

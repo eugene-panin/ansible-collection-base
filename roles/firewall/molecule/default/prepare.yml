@@ -1,0 +1,18 @@
+---
+- name: Serve two ports on every host, one to allow and one to leave closed
+  hosts: all
+  become: true
+  tasks:
+    - name: Serve each port
+      ansible.builtin.command:
+        argv:
+          - systemd-run
+          - "--unit=probe-{{ item }}"
+          - /usr/bin/python3
+          - -m
+          - http.server
+          - "{{ item }}"
+        creates: "/run/systemd/transient/probe-{{ item }}.service"
+      loop:
+        - 8080
+        - 8443

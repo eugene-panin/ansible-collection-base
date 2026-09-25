@@ -1,7 +1,7 @@
 ---
 namespace: eugene_panin
 name: base
-version: 0.3.4
+version: 0.4.0
 readme: README.md
 authors:
   - Evgenii Panin <e.panin@gmail.com>
@@ -17,6 +17,7 @@ tags:
   - networking
   - wireguard
   - docker
+  - firewall
 dependencies:
   community.general: ">=10.0.0"
 build_ignore:

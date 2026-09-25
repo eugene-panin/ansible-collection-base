@@ -1,0 +1,6 @@
+---
+- name: Converge
+  hosts: target
+  become: true
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"

@@ -3,6 +3,16 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-09-25
+
+### Added
+
+- `firewall` role: ufw that denies incoming by default, allows SSH first and
+  then the declared ports, optionally per interface, and allows outgoing.
+  A rule with an interface and no port allows everything in on that
+  interface, such as a container bridge. Tested with a second host that checks
+  the allowed port answers and the other one does not.
+
 ## [0.3.4] - 2026-09-25
 
 ### Fixed
