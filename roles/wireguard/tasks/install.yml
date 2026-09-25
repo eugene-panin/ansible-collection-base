@@ -11,10 +11,11 @@
   retries: 30
   delay: 10
 
-- name: Ensure WireGuard packages are installed
-  ansible.builtin.package:
+- name: Ensure WireGuard packages are installed, without a kernel module package the kernel already covers
+  ansible.builtin.apt:
     name: "{{ _wireguard_packages }}"
     state: present
+    install_recommends: false
   register: _wireguard_install
   until: _wireguard_install is succeeded
   retries: 30

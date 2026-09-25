@@ -55,3 +55,16 @@
           - "'AllowedIPs = 0.0.0.0/0' in _wireguard_client_phone.content | b64decode"
         quiet: true
       no_log: true
+
+    - name: List installed kernel and DKMS packages
+      ansible.builtin.shell:
+        cmd: set -o pipefail; dpkg-query -W -f='${Package} ${db:Status-Status}\n' 'linux-image*' '*-dkms' dkms 2>/dev/null | awk '$2 == "installed"' || true
+        executable: /bin/bash
+      register: _wireguard_client_test_kernel
+      changed_when: false
+
+    - name: Assert WireGuard brought no kernel or DKMS package with it
+      ansible.builtin.assert:
+        that:
+          - _wireguard_client_test_kernel.stdout_lines | length == 0
+        quiet: true

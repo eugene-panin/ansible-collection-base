@@ -74,3 +74,16 @@
         that:
           - "'nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=' in _wireguard_wg_peers.stdout_lines"
         quiet: true
+
+    - name: List installed kernel and DKMS packages
+      ansible.builtin.shell:
+        cmd: set -o pipefail; dpkg-query -W -f='${Package} ${db:Status-Status}\n' 'linux-image*' '*-dkms' dkms 2>/dev/null | awk '$2 == "installed"' || true
+        executable: /bin/bash
+      register: _wireguard_test_kernel
+      changed_when: false
+
+    - name: Assert WireGuard brought no kernel or DKMS package with it
+      ansible.builtin.assert:
+        that:
+          - _wireguard_test_kernel.stdout_lines | length == 0
+        quiet: true

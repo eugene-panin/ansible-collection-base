@@ -3,6 +3,19 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.4] - 2026-09-25
+
+### Fixed
+
+- `wireguard` and `wireguard_client` installed packages that pulled in a
+  kernel image or DKMS with a compiler: `wireguard-tools` recommends a kernel
+  module package, which on Ubuntu 22.04 and Debian 12 resolves to a
+  `linux-image`, and the `wireguard` metapackage the `wireguard` role used on
+  Debian and Ubuntu depends on `wireguard-dkms` where the kernel does not
+  provide the module. WireGuard is in the kernel on every supported system;
+  both roles now install `wireguard-tools` alone, without recommends, and the
+  tests check no kernel or DKMS package came along.
+
 ## [0.3.3] - 2026-09-25
 
 ### Fixed
