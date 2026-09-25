@@ -21,7 +21,7 @@ help:
 	@echo "roles with scenarios: $(TESTED)"
 
 deps:
-	ansible-galaxy collection install community.general
+	ansible-galaxy collection install community.general .
 
 lint:
 	yamllint .
