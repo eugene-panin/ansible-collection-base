@@ -1,5 +1,6 @@
 ---
 docker_version: 29.8.1
+docker_gpg_key_sha256: 1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570
 
 docker_daemon_config:
   log-driver: local

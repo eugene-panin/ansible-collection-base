@@ -13,6 +13,12 @@ argument_specs:
         default: 29.8.1
         description:
           - Exact Docker Engine release. Changing it upgrades in place.
+      docker_gpg_key_sha256:
+        type: str
+        default: 1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570
+        description:
+          - SHA-256 of the key Docker signs its apt repository with. The key is
+            checked against it, and a run fails if Docker serves another one.
       docker_daemon_config:
         type: dict
         default:

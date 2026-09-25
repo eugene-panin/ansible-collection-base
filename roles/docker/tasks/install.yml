@@ -20,7 +20,7 @@
     owner: root
     group: root
     mode: '0644'
-    force: false
+    checksum: "sha256:{{ docker_gpg_key_sha256 }}"
   register: _docker_key
   until: _docker_key is succeeded
   retries: 3

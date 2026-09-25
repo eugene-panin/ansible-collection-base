@@ -1,7 +1,7 @@
 ---
 namespace: eugene_panin
 name: base
-version: 0.4.0
+version: 0.4.1
 readme: README.md
 authors:
   - Evgenii Panin <e.panin@gmail.com>

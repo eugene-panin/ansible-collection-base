@@ -24,6 +24,13 @@ behind your back. Changing `docker_version` upgrades in place and restarts
 the daemon. The role restarts it itself rather than relying on the package
 scripts, which a `policy-rc.d` can silence.
 
+## The repository key
+
+The key Docker signs its apt repository with is checked against
+`docker_gpg_key_sha256` before apt trusts it. If Docker ever rotates the key,
+the run fails at that step instead of trusting a different one; check the new
+key and set the variable to its sum.
+
 ## Daemon configuration
 
 `docker_daemon_config` is rendered to `/etc/docker/daemon.json` and checked
@@ -57,4 +64,5 @@ back through the logging driver.
 | Variable | Default | Purpose |
 |---|---|---|
 | `docker_version` | `29.8.1` | Exact Docker Engine release |
+| `docker_gpg_key_sha256` | Docker's current key | SHA-256 the repository key must match |
 | `docker_daemon_config` | `{log-driver: local}` | Content of `daemon.json` |

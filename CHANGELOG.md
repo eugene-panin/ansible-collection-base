@@ -3,6 +3,17 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-09-25
+
+### Fixed
+
+- `docker`: `--check` reported the repository key as changed on every run.
+  On ansible-core 2.21 `get_url` downloads the file in check mode even with
+  `force: false` and an existing destination. The key is now pinned by its
+  SHA-256, `docker_gpg_key_sha256`, so an existing key is left alone, and a
+  key other than the pinned one fails the run. Found by `--check` on a live
+  host.
+
 ## [0.4.0] - 2026-09-25
 
 ### Added
