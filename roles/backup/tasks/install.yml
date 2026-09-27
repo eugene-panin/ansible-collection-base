@@ -1,0 +1,57 @@
+---
+- name: Check whether restic is already installed
+  ansible.builtin.stat:
+    path: "{{ _backup_binary }}"
+  register: _backup_installed
+  check_mode: false
+
+- name: Ensure the tools restic needs are installed
+  ansible.builtin.apt:
+    name: [bzip2, ca-certificates, openssh-client]
+    state: present
+    install_recommends: false
+    cache_valid_time: 3600
+  register: _backup_apt
+  until: _backup_apt is succeeded
+  retries: 3
+  delay: 10
+
+- name: Ensure the directory of restic releases exists
+  ansible.builtin.file:
+    path: /usr/local/lib/restic
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Download the restic release, verified against its checksum
+  ansible.builtin.get_url:
+    url: "{{ _backup_url }}"
+    dest: "{{ _backup_download }}"
+    checksum: "sha256:{{ backup_restic_sha256[_backup_arch] }}"
+    owner: root
+    group: root
+    mode: '0644'
+  register: _backup_get
+  until: _backup_get is succeeded
+  retries: 3
+  delay: 5
+
+- name: Unpack the restic release
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      bunzip2 -c {{ _backup_download | quote }} > {{ _backup_release | quote }}.tmp &&
+      chmod 0755 {{ _backup_release | quote }}.tmp &&
+      mv {{ _backup_release | quote }}.tmp {{ _backup_release | quote }}
+    executable: /bin/bash
+    creates: "{{ _backup_release }}"
+
+- name: Point restic at the release
+  ansible.builtin.file:
+    src: "{{ _backup_release }}"
+    dest: "{{ _backup_binary }}"
+    state: link
+    force: true
+    owner: root
+    group: root

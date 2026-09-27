@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+set -a
+. /etc/restic/env
+set +a
+
+opts=()
+if [[ -n ${RESTIC_SFTP_ARGS:-} ]]; then
+  opts+=(-o "sftp.args=$RESTIC_SFTP_ARGS")
+fi
+exec /usr/local/bin/restic "${opts[@]}" "$@"

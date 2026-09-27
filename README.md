@@ -16,6 +16,7 @@ Consul, Nomad, Vault or anything from another collection.
 | [`wireguard_client`](roles/wireguard_client/README.md) | Keys and importable `.conf` files for the devices that connect to it |
 | [`firewall`](roles/firewall/README.md) | ufw: incoming denied by default, SSH and declared ports allowed |
 | [`docker`](roles/docker/README.md) | Docker Engine only, pinned and held, with a validated `daemon.json` |
+| [`backup`](roles/backup/README.md) | restic on a timer to any repository off the host, with hooks before each run and a weekly check |
 
 ## Requirements
 

@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: backup
+  namespace: eugene_panin
+  author: Evgenii Panin
+  description: Scheduled restic backups to a repository off the host, with hooks that run before each one
+  license: MIT
+  min_ansible_version: "2.19"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bookworm
+  galaxy_tags:
+    - backup
+    - restic
+dependencies: []

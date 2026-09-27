@@ -1,0 +1,150 @@
+---
+- name: Verify
+  hosts: instance-backup
+  become: true
+  gather_facts: false
+  vars:
+    restic: /usr/local/sbin/backup-restic
+  tasks:
+    - name: Read the permissions of the secrets
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: [/etc/restic, /etc/restic/password, /etc/restic/env, /etc/restic/hooks.env, /etc/restic/ssh_key]
+      register: _backup_test_secrets
+
+    - name: Assert only root can read the secrets
+      ansible.builtin.assert:
+        that:
+          - _backup_test_secrets.results | map(attribute='stat.exists') | reject | list | length == 0
+          - _backup_test_secrets.results[0].stat.mode == '0700'
+          - _backup_test_secrets.results[1:] | map(attribute='stat.mode') | reject('equalto', '0600') | list | length == 0
+          - _backup_test_secrets.results | map(attribute='stat.pw_name') | reject('equalto', 'root') | list | length == 0
+        quiet: true
+
+    - name: Read the state of the timers
+      ansible.builtin.command:
+        argv: [systemctl, is-enabled, restic-backup.timer, restic-check.timer]
+      register: _backup_test_timers
+      changed_when: false
+
+    - name: Assert both timers are enabled
+      ansible.builtin.assert:
+        that: _backup_test_timers.stdout_lines == ['enabled', 'enabled']
+        quiet: true
+
+    - name: Run the backup the timer runs
+      ansible.builtin.command:
+        argv: [systemctl, start, restic-backup.service]
+      changed_when: true
+
+    - name: Restore the latest snapshot
+      ansible.builtin.command:
+        argv: [/usr/local/sbin/backup-restic, restore, latest, --target, /tmp/restore-1]
+      changed_when: true
+
+    - name: Read the restored files
+      ansible.builtin.slurp:
+        src: "{{ item }}"
+      loop:
+        - /tmp/restore-1/srv/data/mailbox.txt
+        - /tmp/restore-1/var/backups/restic-hooks/dump.txt
+      register: _backup_test_restored
+
+    - name: Look for the excluded file in the restore
+      ansible.builtin.stat:
+        path: /tmp/restore-1/srv/data/cache.tmp
+      register: _backup_test_excluded
+
+    - name: Assert the data and the hook output came back, and the excluded file did not
+      ansible.builtin.assert:
+        that:
+          - _backup_test_restored.results[0].content | b64decode == 'first'
+          - _backup_test_restored.results[1].content | b64decode == 'written by the hook'
+          - not _backup_test_excluded.stat.exists
+        quiet: true
+
+    - name: Change the data and back up twice more
+      ansible.builtin.include_tasks: tasks/backup-again.yml
+      loop: [second, third]
+      loop_control:
+        loop_var: _backup_test_content
+
+    - name: List the snapshots
+      ansible.builtin.command:
+        argv: [/usr/local/sbin/backup-restic, snapshots, --json]
+      register: _backup_test_snapshots
+      changed_when: false
+
+    - name: Restore the latest snapshot again
+      ansible.builtin.command:
+        argv: [/usr/local/sbin/backup-restic, restore, latest, --target, /tmp/restore-2]
+      changed_when: true
+
+    - name: Read the restored data
+      ansible.builtin.slurp:
+        src: /tmp/restore-2/srv/data/mailbox.txt
+      register: _backup_test_latest
+
+    - name: Assert the retention dropped the middle snapshot of the day and kept the oldest and the latest
+      ansible.builtin.assert:
+        that:
+          - _backup_test_snapshots.stdout | from_json | length == 2
+          - _backup_test_snapshots.stdout | from_json | map(attribute='tags') | unique == [['scheduled']]
+          - _backup_test_latest.content | b64decode == 'third'
+        quiet: true
+
+    - name: Run the repository check the timer runs
+      ansible.builtin.command:
+        argv: [systemctl, start, restic-check.service]
+      changed_when: false
+
+    - name: Replace the host key of the repository server with another one
+      ansible.builtin.copy:
+        content: "backup-target ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHgNF565xusDnz7JWyN+hkNnwcuw0FgRBJd4JfAxNNZV\n"
+        dest: /etc/restic/known_hosts
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Try the repository with the wrong host key
+      ansible.builtin.command:
+        argv: [/usr/local/sbin/backup-restic, snapshots]
+      register: _backup_test_spoofed
+      changed_when: false
+      failed_when: false
+
+    - name: Assert restic refuses a server with another host key
+      ansible.builtin.assert:
+        that: _backup_test_spoofed.rc != 0
+        quiet: true
+
+- name: Drop the hooks
+  hosts: instance-backup
+  become: true
+  vars:
+    backup_repository: sftp:backup-repo@backup-target:/srv/backups/instance
+    backup_password: molecule-repository-password
+    backup_ssh_private_key: "{{ lookup('file', lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') ~ '/id_ed25519') }}"
+    backup_ssh_known_hosts: "{{ lookup('file', lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') ~ '/known_hosts') }}"
+    backup_paths: [/srv/data]
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+  post_tasks:
+    - name: List the hooks left on the host
+      ansible.builtin.find:
+        paths: /etc/restic/hooks.d
+        file_type: any
+        hidden: true
+      register: _backup_test_hooks
+
+    - name: Look for the environment of the hooks
+      ansible.builtin.stat:
+        path: /etc/restic/hooks.env
+      register: _backup_test_hooks_env
+
+    - name: Assert undeclared hooks and their environment are gone
+      ansible.builtin.assert:
+        that:
+          - _backup_test_hooks.matched == 0
+          - not _backup_test_hooks_env.stat.exists
+        quiet: true

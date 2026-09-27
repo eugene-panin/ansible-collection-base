@@ -1,0 +1,26 @@
+---
+- name: Write the systemd units of the backup and the check
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - restic-backup.service
+    - restic-backup.timer
+    - restic-check.service
+    - restic-check.timer
+  register: _backup_units
+  notify: "reload systemd"
+
+- name: Apply pending unit changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure the timers are enabled and running
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [restic-backup.timer, restic-check.timer]
+  when: not (ansible_check_mode and _backup_units is changed)

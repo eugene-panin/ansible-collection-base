@@ -1,0 +1,29 @@
+---
+backup_restic_version: 0.19.1
+backup_restic_sha256:
+  amd64: f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c
+  arm64: a5f64aaab53d51e311fa3829124c5b703f2d14cf187d8640b6be3b2b49376465
+
+backup_repository: ""
+backup_password: ""
+backup_environment: {}
+
+backup_ssh_private_key: ""
+backup_ssh_known_hosts: ""
+
+backup_compression: auto
+
+backup_paths: []
+backup_exclude: []
+backup_hooks: []
+backup_hook_environment: {}
+
+backup_schedule: "*-*-* 03:00:00"
+backup_randomized_delay: 30min
+backup_check_schedule: Sun *-*-* 05:00:00
+backup_check_subset: 10%
+
+backup_keep:
+  daily: 7
+  weekly: 4
+  monthly: 6

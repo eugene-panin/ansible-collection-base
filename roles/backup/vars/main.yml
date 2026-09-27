@@ -1,0 +1,25 @@
+---
+_backup_dir: /etc/restic
+_backup_hooks_dir: /etc/restic/hooks.d
+_backup_hook_output: /var/backups/restic-hooks
+_backup_binary: /usr/local/bin/restic
+_backup_arch: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}[ansible_facts['architecture']] | default(ansible_facts['architecture']) }}"
+_backup_release: "/usr/local/lib/restic/restic-{{ backup_restic_version }}"
+_backup_download: "/usr/local/src/restic_{{ backup_restic_version }}_linux_{{ _backup_arch }}.bz2"
+_backup_url: "https://github.com/restic/restic/releases/download/v{{ backup_restic_version }}/restic_{{ backup_restic_version }}_linux_{{ _backup_arch }}.bz2"
+_backup_sftp: "{{ backup_repository is match('^sftp:') }}"
+_backup_sftp_args: >-
+  -i {{ _backup_dir }}/ssh_key -o UserKnownHostsFile={{ _backup_dir }}/known_hosts
+  -o StrictHostKeyChecking=yes -o BatchMode=yes
+_backup_env: >-
+  {{ backup_environment | combine({
+       'RESTIC_REPOSITORY': backup_repository,
+       'RESTIC_PASSWORD_FILE': _backup_dir ~ '/password',
+       'RESTIC_CACHE_DIR': '/var/cache/restic',
+       'RESTIC_COMPRESSION': backup_compression,
+       'RESTIC_SFTP_ARGS': _backup_sftp_args if _backup_sftp else '',
+       'BACKUP_HOOK_OUTPUT': _backup_hook_output,
+       'BACKUP_KEEP_DAILY': backup_keep.daily | string,
+       'BACKUP_KEEP_WEEKLY': backup_keep.weekly | string,
+       'BACKUP_KEEP_MONTHLY': backup_keep.monthly | string,
+     }) }}

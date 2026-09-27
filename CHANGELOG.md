@@ -3,6 +3,26 @@
 All notable changes to this collection are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [0.5.0] - 2026-09-27
+
+### Added
+
+- `backup` role: restic on a systemd timer to a repository off the host,
+  given by its address, `sftp:` to any SSH server needing nothing else.
+  - The restic release is pinned and checked against its SHA-256, and the
+    repository is created if missing.
+  - Hooks run before every backup and write their dumps into it; a failing
+    hook fails the run.
+  - restic compresses, deduplicates and encrypts; `backup_compression` sets
+    how hard it compresses.
+  - Snapshots are forgotten and pruned by `backup_keep`, and a weekly timer
+    checks the repository and reads back a part of its data.
+  - `backup-restic` is restic with the credentials set, for restores.
+  - Tested with molecule against an SSH-only repository server, including a
+    restore.
+
 ## [0.4.1] - 2026-09-25
 
 ### Fixed

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+set -a
+. /etc/restic/env
+if [[ -f /etc/restic/hooks.env ]]; then
+  . /etc/restic/hooks.env
+fi
+set +a
+
+rm -rf "$BACKUP_HOOK_OUTPUT"
+install -d -m 0700 "$BACKUP_HOOK_OUTPUT"
+for hook in /etc/restic/hooks.d/*; do
+  [[ -f $hook && -x $hook ]] || continue
+  echo "hook ${hook##*/}"
+  "$hook"
+done
+
+backup-restic --retry-lock 1h backup --tag scheduled \
+  --files-from /etc/restic/paths --exclude-file /etc/restic/excludes "$BACKUP_HOOK_OUTPUT"
+backup-restic --retry-lock 1h forget --prune --tag scheduled \
+  --keep-daily "$BACKUP_KEEP_DAILY" --keep-weekly "$BACKUP_KEEP_WEEKLY" --keep-monthly "$BACKUP_KEEP_MONTHLY"
