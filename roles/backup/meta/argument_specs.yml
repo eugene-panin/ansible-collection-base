@@ -1,0 +1,118 @@
+---
+argument_specs:
+  main:
+    short_description: Scheduled restic backups to a repository off the host
+    description:
+      - Installs a pinned restic release, checked against its SHA-256, and backs
+        up backup_paths on a systemd timer, after running backup_hooks.
+      - The repository is anything restic supports, given by its address; an
+        sftp one only needs a server reachable over SSH. The role creates the
+        repository if it does not exist yet.
+      - Old snapshots are forgotten and pruned after every backup by
+        backup_keep; a second timer checks the repository and reads a part of
+        its data every week.
+    options:
+      backup_restic_version:
+        type: str
+        default: 0.19.1
+        description:
+          - restic release.
+      backup_restic_sha256:
+        type: dict
+        description:
+          - SHA-256 of the release archive per architecture, amd64 and arm64.
+      backup_repository:
+        type: str
+        required: true
+        description:
+          - restic repository, such as C(sftp:backup@host:/srv/backups/web),
+            C(s3:https://s3.example.com/bucket) or C(rest:https://host/).
+      backup_password:
+        type: str
+        required: true
+        no_log: true
+        description:
+          - Password the repository is encrypted with. Without it the backups
+            cannot be read; keep a copy off the host.
+      backup_environment:
+        type: dict
+        default: {}
+        no_log: true
+        description:
+          - Credentials of the repository backend, such as
+            C(AWS_ACCESS_KEY_ID) and C(AWS_SECRET_ACCESS_KEY) for s3.
+      backup_ssh_private_key:
+        type: str
+        default: ""
+        no_log: true
+        description:
+          - Private key restic logs in to an sftp repository with.
+      backup_ssh_known_hosts:
+        type: str
+        default: ""
+        description:
+          - known_hosts lines of the sftp server; the host key is checked, never
+            trusted on first use.
+      backup_compression:
+        type: str
+        default: auto
+        choices: [auto, max, "off"]
+        description:
+          - How restic compresses the data it stores. C(auto) is fast and
+            already small; C(max) spends more CPU for less space.
+      backup_paths:
+        type: list
+        elements: str
+        required: true
+        description:
+          - Absolute paths to back up.
+      backup_exclude:
+        type: list
+        elements: str
+        default: []
+        description:
+          - restic exclude patterns.
+      backup_hooks:
+        type: list
+        elements: dict
+        default: []
+        description:
+          - Commands that run before every backup, in order, each as C(name) and
+            C(command). A hook writes what it dumps under the directory in
+            C($BACKUP_HOOK_OUTPUT), which is backed up with backup_paths. A
+            failing hook fails the backup.
+      backup_hook_environment:
+        type: dict
+        default: {}
+        no_log: true
+        description:
+          - Environment of the hooks, such as the tokens a snapshot needs.
+      backup_schedule:
+        type: str
+        default: "*-*-* 03:00:00"
+        description:
+          - systemd OnCalendar of the backup.
+      backup_randomized_delay:
+        type: str
+        default: 30min
+        description:
+          - systemd RandomizedDelaySec of both timers.
+      backup_check_schedule:
+        type: str
+        default: Sun *-*-* 05:00:00
+        description:
+          - systemd OnCalendar of the repository check.
+      backup_check_subset:
+        type: str
+        default: 10%
+        description:
+          - Part of the data the check reads back, as restic --read-data-subset
+            takes it.
+      backup_keep:
+        type: dict
+        default:
+          daily: 7
+          weekly: 4
+          monthly: 6
+        description:
+          - Snapshots kept per day, week and month.

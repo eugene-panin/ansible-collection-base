@@ -1,0 +1,11 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=Back up to the restic repository on schedule
+
+[Timer]
+OnCalendar={{ backup_schedule }}
+RandomizedDelaySec={{ backup_randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

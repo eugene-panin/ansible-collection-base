@@ -1,0 +1,11 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=Check the restic repository and read a part of its data
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/backup-restic --retry-lock 1h check --read-data-subset={{ backup_check_subset }}
+Nice=10
+IOSchedulingClass=idle

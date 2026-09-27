@@ -46,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        role: [wireguard, wireguard_client, docker, firewall]
+        role: [wireguard, wireguard_client, docker, firewall, backup]
         distro: [ubuntu2404, ubuntu2204, debian12]
         ansible_core: [latest]
         include:
@@ -60,6 +60,9 @@ jobs:
             distro: ubuntu2404
             ansible_core: '2.19'
           - role: firewall
+            distro: ubuntu2404
+            ansible_core: '2.19'
+          - role: backup
             distro: ubuntu2404
             ansible_core: '2.19'
     env:

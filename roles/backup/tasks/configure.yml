@@ -1,0 +1,132 @@
+---
+- name: Ensure the restic directories exist, readable by root only
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  loop:
+    - "{{ _backup_dir }}"
+    - "{{ _backup_hooks_dir }}"
+    - /var/cache/restic
+
+- name: Write the repository password
+  ansible.builtin.copy:
+    content: "{{ backup_password }}"
+    dest: "{{ _backup_dir }}/password"
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+
+- name: Write the environment of restic
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ _backup_dir }}/env"
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+
+- name: Write the environment of the hooks
+  ansible.builtin.template:
+    src: hooks.env.j2
+    dest: "{{ _backup_dir }}/hooks.env"
+    owner: root
+    group: root
+    mode: '0600'
+  when: backup_hook_environment | length > 0
+  no_log: true
+
+- name: Remove the environment of the hooks when none is declared
+  ansible.builtin.file:
+    path: "{{ _backup_dir }}/hooks.env"
+    state: absent
+  when: backup_hook_environment | length == 0
+
+- name: Write the SSH key of the repository
+  ansible.builtin.copy:
+    content: "{{ backup_ssh_private_key | trim }}\n"
+    dest: "{{ _backup_dir }}/ssh_key"
+    owner: root
+    group: root
+    mode: '0600'
+  when: _backup_sftp | bool
+  no_log: true
+
+- name: Write the host key of the repository server
+  ansible.builtin.copy:
+    content: "{{ backup_ssh_known_hosts | trim }}\n"
+    dest: "{{ _backup_dir }}/known_hosts"
+    owner: root
+    group: root
+    mode: '0644'
+  when: _backup_sftp | bool
+
+- name: Write the paths to back up and the patterns to leave out
+  ansible.builtin.copy:
+    content: "{{ (item.lines | join('\n') ~ '\n') if item.lines | length > 0 else '' }}"
+    dest: "{{ _backup_dir }}/{{ item.name }}"
+    owner: root
+    group: root
+    mode: '0600'
+  loop:
+    - {name: paths, lines: "{{ backup_paths }}"}
+    - {name: excludes, lines: "{{ backup_exclude }}"}
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Install the restic wrapper and the backup run
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: root
+    mode: '0755'
+  loop: [backup-restic, backup-run]
+
+- name: Write the hooks that run before every backup
+  ansible.builtin.template:
+    src: hook.j2
+    dest: "{{ _backup_hooks_dir }}/{{ item.name }}"
+    owner: root
+    group: root
+    mode: '0700'
+  loop: "{{ backup_hooks }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Find the hooks on the host
+  ansible.builtin.find:
+    paths: "{{ _backup_hooks_dir }}"
+    file_type: any
+    hidden: true
+  register: _backup_found_hooks
+  check_mode: false
+
+- name: Remove the hooks that are no longer declared
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ _backup_found_hooks.files | rejectattr('path', 'in', _backup_declared_hooks) | list }}"
+  loop_control:
+    label: "{{ item.path }}"
+  vars:
+    _backup_declared_hooks: "{{ backup_hooks | map(attribute='name') | map('regex_replace', '^', _backup_hooks_dir ~ '/') | list }}"
+
+- name: Check whether the repository exists
+  ansible.builtin.command:
+    argv: [/usr/local/sbin/backup-restic, cat, config]
+  register: _backup_repo
+  changed_when: false
+  failed_when: _backup_repo.rc not in [0, 10]
+  check_mode: false
+  when: not ansible_check_mode or _backup_installed.stat.exists
+
+- name: Create the repository
+  ansible.builtin.command:
+    argv: [/usr/local/sbin/backup-restic, init]
+  register: _backup_init
+  changed_when: _backup_init.rc == 0
+  when: _backup_repo.rc | default(0) == 10

@@ -1,0 +1,106 @@
+---
+- name: Make the key restic logs in with
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Generate an SSH key pair in the scenario directory
+      ansible.builtin.command:
+        argv: [ssh-keygen, -q, -t, ed25519, -N, "", -f, "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/id_ed25519"]
+        creates: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/id_ed25519"
+
+- name: Prepare the repository server
+  hosts: backup-target
+  become: true
+  tasks:
+    - name: Install the SSH server
+      ansible.builtin.apt:
+        name: openssh-server
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Run the SSH server
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: started
+        enabled: true
+
+    - name: Create the backup user
+      ansible.builtin.user:
+        name: backup-repo
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Ensure the SSH directory of the backup user exists
+      ansible.builtin.file:
+        path: /home/backup-repo/.ssh
+        state: directory
+        owner: backup-repo
+        group: backup-repo
+        mode: '0700'
+
+    - name: Let the key log in as the backup user
+      ansible.builtin.copy:
+        content: "{{ lookup('file', lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') ~ '/id_ed25519.pub') }}\n"
+        dest: /home/backup-repo/.ssh/authorized_keys
+        owner: backup-repo
+        group: backup-repo
+        mode: '0600'
+
+    - name: Ensure the directory of the repositories exists
+      ansible.builtin.file:
+        path: /srv/backups
+        state: directory
+        owner: backup-repo
+        group: backup-repo
+        mode: '0700'
+
+- name: Record the host key of the repository server
+  hosts: instance-backup
+  become: true
+  tasks:
+    - name: Install the SSH client
+      ansible.builtin.apt:
+        name: openssh-client
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Scan the host key of the repository server
+      ansible.builtin.command:
+        argv: [ssh-keyscan, -t, ed25519, backup-target]
+      register: _backup_test_scan
+      changed_when: false
+      until: _backup_test_scan.stdout | length > 0
+      retries: 10
+      delay: 2
+
+    - name: Keep the host key for the converge
+      ansible.builtin.copy:
+        content: "{{ _backup_test_scan.stdout }}\n"
+        dest: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/known_hosts"
+        mode: '0600'
+      delegate_to: localhost
+      become: false
+
+    - name: Ensure the data directory exists
+      ansible.builtin.file:
+        path: /srv/data
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+
+    - name: Create the data to back up
+      ansible.builtin.copy:
+        content: "{{ item.content }}"
+        dest: "/srv/data/{{ item.name }}"
+        owner: root
+        group: root
+        mode: '0600'
+      loop:
+        - {name: mailbox.txt, content: first}
+        - {name: cache.tmp, content: left out}
+      loop_control:
+        label: "{{ item.name }}"

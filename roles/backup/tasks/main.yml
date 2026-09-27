@@ -1,0 +1,37 @@
+---
+- name: Validate role inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'Debian'
+      - _backup_arch in backup_restic_sha256
+      - backup_repository | length > 0
+      - backup_password | length > 0
+      - backup_compression in ['auto', 'max', 'off']
+      - backup_paths | type_debug == 'list' and backup_paths | length > 0
+      - backup_paths | select('match', '^/') | list | length == backup_paths | length
+      - backup_environment | type_debug == 'dict'
+      - backup_hook_environment | type_debug == 'dict'
+      - backup_hooks | type_debug == 'list'
+      - backup_hooks | rejectattr('name', 'defined') | list | length == 0
+      - backup_hooks | rejectattr('command', 'defined') | list | length == 0
+      - backup_hooks | map(attribute='name') | reject('match', '^[a-z0-9][a-z0-9_-]*$') | list | length == 0
+      - not _backup_sftp or (backup_ssh_private_key | length > 0 and backup_ssh_known_hosts | length > 0)
+    fail_msg: >-
+      The role supports Debian and Ubuntu on amd64 and arm64. backup_repository
+      and backup_password are required, backup_paths is a non-empty list of
+      absolute paths, every hook has a name of lowercase letters, digits, - and
+      _, and a command. An sftp: repository needs backup_ssh_private_key and
+      backup_ssh_known_hosts.
+    quiet: true
+
+- name: Install
+  ansible.builtin.include_tasks: install.yml
+  tags: [backup, install]
+
+- name: Configure
+  ansible.builtin.include_tasks: configure.yml
+  tags: [backup, config]
+
+- name: Manage the timers
+  ansible.builtin.include_tasks: service.yml
+  tags: [backup, service]

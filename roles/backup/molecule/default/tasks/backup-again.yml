@@ -1,0 +1,13 @@
+---
+- name: Change the data
+  ansible.builtin.copy:
+    content: "{{ _backup_test_content }}"
+    dest: /srv/data/mailbox.txt
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Run the backup again
+  ansible.builtin.command:
+    argv: [systemctl, start, restic-backup.service]
+  changed_when: true
