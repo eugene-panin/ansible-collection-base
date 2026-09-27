@@ -1,4 +1,8 @@
 ---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: molecule/default/requirements.yml
 driver:
   name: docker
 platforms:
@@ -37,6 +41,7 @@ verifier:
   name: ansible
 scenario:
   test_sequence:
+    - dependency
     - syntax
     - create
     - prepare
