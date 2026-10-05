@@ -1,0 +1,38 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: List what is left in the client directory
+      ansible.builtin.find:
+        paths: /etc/wireguard/clients
+        patterns: ["*"]
+      register: _wireguard_client_left
+
+    - name: Assert only the phone, whose key is made here, is kept on the host
+      ansible.builtin.assert:
+        that:
+          - _wireguard_client_left.files | map(attribute='path') | map('basename') | sort == ['phone.conf', 'phone.key']
+        quiet: true
+
+    - name: Give the role a public key that is not a WireGuard key
+      block:
+        - name: Apply the role with the bad key
+          ansible.builtin.include_role:
+            name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+          vars:
+            wireguard_client_list:
+              - name: laptop
+                address: 10.10.0.2/32
+                public_key: not-a-key
+
+        - name: Fail, since the bad key was taken
+          ansible.builtin.fail:
+            msg: the role took a public key that is not a WireGuard key
+      rescue:
+        - name: Assert the role refused it, rather than failing elsewhere
+          ansible.builtin.assert:
+            that:
+              - ansible_failed_result.msg is search('a public_key, when given, a WireGuard key')
+            quiet: true

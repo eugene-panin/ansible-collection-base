@@ -1,0 +1,36 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read the key file and what the running interface uses
+      ansible.builtin.command:
+        argv: "{{ item }}"
+      register: _wireguard_state
+      loop:
+        - [cat, /etc/wireguard/wg0.key]
+        - [wg, show, wg0, public-key]
+        - [wg, show, wg0, preshared-keys]
+      changed_when: false
+      no_log: true
+
+    - name: Assert the running interface took the rotated key and the preshared key of the peer
+      ansible.builtin.assert:
+        that:
+          - _wireguard_state.results[0].stdout | trim == '0N/Q0/4lDtzGUv0Pg2k2PlyB1HeWudz3fUesxdKqm3Q='
+          - _wireguard_state.results[1].stdout | trim == 'PtFuHpKUa8VImkejpcJgF3dIQaRR84mgrcNOFQ3bdQk='
+          - _wireguard_state.results[2].stdout is search('nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=\s+QpHPEpZuU6DkuGHBJ2dsigydudHNIpZo/SC/7CPma2o=')
+        quiet: true
+      no_log: true
+
+    - name: Stat the key file
+      ansible.builtin.stat:
+        path: /etc/wireguard/wg0.key
+      register: _wireguard_key
+
+    - name: Assert the key file is root-only
+      ansible.builtin.assert:
+        that:
+          - _wireguard_key.stat.mode == '0600'
+        quiet: true

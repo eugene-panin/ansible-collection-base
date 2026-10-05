@@ -6,3 +6,4 @@ wireguard_peers: []
 wireguard_manage_firewall: true
 wireguard_allow_mesh_traffic: true
 wireguard_private_key_path: "/etc/wireguard/{{ wireguard_interface }}.key"
+wireguard_private_key: ""

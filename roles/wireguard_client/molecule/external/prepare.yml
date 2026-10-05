@@ -1,0 +1,34 @@
+---
+- name: Leave what an earlier version of the role left on the host
+  hosts: all
+  become: true
+  tasks:
+    - name: Install wireguard-tools, as the earlier run did
+      ansible.builtin.apt:
+        name: wireguard-tools
+        state: present
+        install_recommends: false
+        update_cache: true
+
+    - name: Ensure the client key directory exists
+      ansible.builtin.file:
+        path: /etc/wireguard/clients
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+
+    - name: Leave a key and a configuration of the laptop, made on the host, and of a sold tablet
+      ansible.builtin.copy:
+        content: "{{ item.content }}\n"
+        dest: "/etc/wireguard/clients/{{ item.name }}"
+        owner: root
+        group: root
+        mode: '0600'
+      loop:
+        - {name: laptop.key, content: "6ExmHRsRYC9jl9z+1ahoQ7Ar8GvkYD/uDrLzsMffhVM="}
+        - {name: laptop.conf, content: "[Interface]"}
+        - {name: tablet.key, content: "kGkVLJzxpzOdNHTzMxfkHhTp5ZtJ0tM6fY2zU0Y4qlo="}
+        - {name: tablet.conf, content: "[Interface]"}
+      loop_control:
+        label: "{{ item.name }}"

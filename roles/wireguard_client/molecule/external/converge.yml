@@ -1,0 +1,31 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    wireguard_public_key: nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=
+    wireguard_client_endpoint: vpn.example.org:51820
+    wireguard_client_list:
+      - name: laptop
+        address: 10.10.0.2/32
+        public_key: SBKgZ5gydXBCzT7tLXzNcBV2VpBYqvNtHZBMcVY5aWM=
+        preshared_key: 4pOJ8yqGCHCDvXkM3m2Ww2zWS4MVo0VwCBnI1XLbn6s=
+      - name: phone
+        address: 10.10.0.3/32
+  roles:
+    - role: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+  post_tasks:
+    - name: Assert the laptop is a peer with its own keys, and the phone with the one made here
+      ansible.builtin.assert:
+        that:
+          - wireguard_client_peers | map(attribute='name') | list == ['phone', 'laptop']
+          - _laptop.public_key == 'SBKgZ5gydXBCzT7tLXzNcBV2VpBYqvNtHZBMcVY5aWM='
+          - _laptop.preshared_key == '4pOJ8yqGCHCDvXkM3m2Ww2zWS4MVo0VwCBnI1XLbn6s='
+          - _laptop.allowed_ips == '10.10.0.2/32'
+          - _phone.public_key is match('^[A-Za-z0-9+/]{43}=$')
+          - _phone.preshared_key | default('') == ''
+        quiet: true
+      vars:
+        _laptop: "{{ wireguard_client_peers | selectattr('name', 'equalto', 'laptop') | first }}"
+        _phone: "{{ wireguard_client_peers | selectattr('name', 'equalto', 'phone') | first }}"
+      no_log: true

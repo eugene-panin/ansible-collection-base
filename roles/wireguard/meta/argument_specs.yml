@@ -3,7 +3,8 @@ argument_specs:
   main:
     short_description: Configure a WireGuard interface
     description:
-      - Installs WireGuard, generates the interface private key once, renders
+      - Installs WireGuard, takes the interface private key it is given or
+        generates one once, renders
         the interface configuration with its peers and manages the
         wg-quick systemd unit.
     options:
@@ -33,6 +34,10 @@ argument_specs:
             type: str
             required: true
             description: Addresses routed to that peer.
+          preshared_key:
+            type: str
+            no_log: true
+            description: A preshared key for this peer, base64 like a key, mixed into its handshake.
           name:
             type: str
             description: Comment written above the peer block.
@@ -62,5 +67,13 @@ argument_specs:
         type: str
         default: /etc/wireguard/{{ wireguard_interface }}.key
         description:
-          - Where the private key is stored. Generated once and never rotated
-            by this role.
+          - Where the private key is stored.
+      wireguard_private_key:
+        type: str
+        default: ""
+        no_log: true
+        description:
+          - The interface private key, base64 as wg genkey prints it, written to
+            O(wireguard_private_key_path). Changing it rotates the key and
+            restarts the interface; every peer then needs the new public key.
+          - Empty, the role generates a key once and never rotates it.

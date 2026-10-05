@@ -13,6 +13,16 @@
   register: _wireguard_key_stat
   check_mode: false
 
+- name: Write the interface private key given to the role
+  ansible.builtin.copy:
+    content: "{{ wireguard_private_key }}\n"
+    dest: "{{ wireguard_private_key_path }}"
+    owner: root
+    group: root
+    mode: '0600'
+  when: wireguard_private_key | length > 0
+  no_log: true
+
 - name: Generate the interface private key
   ansible.builtin.shell:
     cmd: >-
@@ -21,18 +31,28 @@
       && mv {{ wireguard_private_key_path | quote }}.new
       {{ wireguard_private_key_path | quote }}
     creates: "{{ wireguard_private_key_path }}"
+  when: wireguard_private_key | length == 0
 
 - name: Read the interface private key
   ansible.builtin.slurp:
     src: "{{ wireguard_private_key_path }}"
   register: _wireguard_private_key_slurp
-  when: _wireguard_key_stat.stat.exists or not ansible_check_mode
+  when:
+    - wireguard_private_key | length == 0
+    - _wireguard_key_stat.stat.exists or not ansible_check_mode
+  no_log: true
+
+- name: Settle the interface private key
+  ansible.builtin.set_fact:
+    _wireguard_private_key: >-
+      {{ wireguard_private_key if wireguard_private_key | length > 0
+         else _wireguard_private_key_slurp.content | default('') | b64decode | trim }}
   no_log: true
 
 - name: Assert the interface private key is not empty
   ansible.builtin.assert:
     that:
-      - _wireguard_private_key_slurp.content | default('') | b64decode | trim | length > 0
+      - _wireguard_private_key | length > 0
     fail_msg: "{{ wireguard_private_key_path }} is empty, remove it and run again"
     quiet: true
   when: not ansible_check_mode
@@ -42,9 +62,11 @@
     argv:
       - wg
       - pubkey
-    stdin: "{{ _wireguard_private_key_slurp.content | default('') | b64decode | trim }}"
+    stdin: "{{ _wireguard_private_key }}"
   register: _wireguard_pubkey
-  when: _wireguard_private_key_slurp.content is defined
+  when:
+    - _wireguard_private_key | length > 0
+    - not (ansible_check_mode and _wireguard_install is changed)
   changed_when: false
   check_mode: false
   no_log: true
@@ -61,8 +83,6 @@
     owner: root
     group: root
     mode: '0600'
-  vars:
-    _wireguard_private_key: "{{ _wireguard_private_key_slurp.content | default('') | b64decode | trim }}"
   no_log: true
   notify: "restart wireguard"
 

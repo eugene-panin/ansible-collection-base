@@ -7,8 +7,12 @@ argument_specs:
       - Generates a keypair per client once, publishes the peer list for the
         wireguard role to render, and writes an importable configuration per
         client.
-      - Client private keys are generated on the host and stay there. Fetch the
-        configurations to wherever they are needed.
+      - A client without O(wireguard_client_list[].public_key) gets a private
+        key generated on the host, which stays there, and a configuration to
+        fetch. A client with one brings its own keys; it is only a peer, and
+        nothing of it is kept on the host.
+      - Keys and configurations of clients no longer listed, or that now bring
+        their own keys, are removed from the host.
       - Run it once before the wireguard role to collect the peer list, and
         again afterwards, when the host public key is known, to render the
         configurations.
@@ -27,6 +31,15 @@ argument_specs:
             type: str
             required: true
             description: The client's address on the mesh, with prefix length.
+          public_key:
+            type: str
+            description:
+              - The client's own public key, when its private key is made and
+                kept elsewhere, such as on the laptop that manages the host.
+          preshared_key:
+            type: str
+            no_log: true
+            description: A preshared key for this client, with O(wireguard_client_list[].public_key).
           routes:
             type: str
             description:

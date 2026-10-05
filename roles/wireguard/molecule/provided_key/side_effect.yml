@@ -1,0 +1,23 @@
+---
+- name: Rotate the key of the interface
+  hosts: all
+  become: true
+  vars:
+    wireguard_address: 10.10.0.1/24
+    wireguard_manage_firewall: false
+    wireguard_private_key: 0N/Q0/4lDtzGUv0Pg2k2PlyB1HeWudz3fUesxdKqm3Q=
+    wireguard_peers:
+      - name: laptop
+        public_key: nZ0Dk1Q5m6oM2h9mWMSaBpS1lE3fXpTK0cN4hGZL0S8=
+        preshared_key: QpHPEpZuU6DkuGHBJ2dsigydudHNIpZo/SC/7CPma2o=
+        allowed_ips: 10.10.0.2/32
+  tasks:
+    - name: Apply the role with the new key
+      ansible.builtin.include_role:
+        name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+    - name: Assert the role published the new public key
+      ansible.builtin.assert:
+        that:
+          - wireguard_public_key == 'PtFuHpKUa8VImkejpcJgF3dIQaRR84mgrcNOFQ3bdQk='
+        quiet: true

@@ -10,6 +10,9 @@ PrivateKey = {{ _wireguard_private_key }}
 # {{ peer.name }}
 {% endif %}
 PublicKey = {{ peer.public_key }}
+{% if peer.preshared_key | default('') | length > 0 %}
+PresharedKey = {{ peer.preshared_key }}
+{% endif %}
 AllowedIPs = {{ peer.allowed_ips }}
 {% if peer.endpoint is defined %}
 Endpoint = {{ peer.endpoint }}

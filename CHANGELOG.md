@@ -5,6 +5,24 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-06
+
+### Added
+
+- `wireguard`: `wireguard_private_key` gives the interface its key from outside,
+  such as from a vault the laptop keeps; changing it rotates the key. Empty, the
+  key is generated once on the host, as before.
+- `wireguard`: a `preshared_key` per peer, rendered as `PresharedKey`.
+- `wireguard_client`: a client with a `public_key`, and a `preshared_key`,
+  brings its own keys. It is only a peer: no key or configuration of it is made
+  or kept on the host, and what an earlier run left there is removed.
+
+### Changed
+
+- `wireguard_client` removes the keys and configurations of clients no longer
+  listed. Peers that bring their own keys come after those whose keys are made
+  on the host in `wireguard_client_peers`.
+
 ## [0.5.0] - 2026-09-27
 
 ### Added
