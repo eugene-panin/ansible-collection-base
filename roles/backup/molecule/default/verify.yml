@@ -98,6 +98,45 @@
         argv: [systemctl, start, restic-check.service]
       changed_when: false
 
+    - name: Leave the lock of a restic killed halfway, as a pull cut off by a laptop going to sleep does
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          rm -f /tmp/held && mkfifo /tmp/held
+          (sleep 600 > /tmp/held &)
+          /usr/local/sbin/backup-restic backup --stdin --stdin-filename held < /tmp/held &
+          pid=$!
+          for _ in $(seq 1 60); do
+            [ -n "$(/usr/local/sbin/backup-restic list locks --no-lock)" ] && break
+            sleep 1
+          done
+          kill -9 "$pid"
+          /usr/local/sbin/backup-restic list locks --no-lock | wc -l
+        executable: /bin/bash
+      register: _backup_test_locks
+      changed_when: true
+
+    - name: Assert a lock was left behind
+      ansible.builtin.assert:
+        that: _backup_test_locks.stdout | int >= 1
+        quiet: true
+
+    - name: Run the backup with the lock left behind; without removing it, its prune waits for an hour
+      ansible.builtin.command:
+        argv: [timeout, "300", systemctl, start, restic-backup.service]
+      changed_when: false
+
+    - name: List the locks after the run
+      ansible.builtin.command:
+        argv: [/usr/local/sbin/backup-restic, list, locks, --no-lock]
+      register: _backup_test_locks_after
+      changed_when: false
+
+    - name: Assert the run removed the stale lock and left none of its own
+      ansible.builtin.assert:
+        that: _backup_test_locks_after.stdout | length == 0
+        quiet: true
+
     - name: Replace the host key of the repository server with another one
       ansible.builtin.copy:
         content: "backup-target ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHgNF565xusDnz7JWyN+hkNnwcuw0FgRBJd4JfAxNNZV\n"

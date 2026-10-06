@@ -5,6 +5,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-06
+
+### Fixed
+
+- `backup`: every run removes stale locks first. A pull of the repository
+  killed halfway, such as from a laptop that went to sleep, left a lock that
+  made the nightly `forget --prune` wait for an hour, then fail.
+
 ## [0.6.0] - 2026-10-06
 
 ### Added

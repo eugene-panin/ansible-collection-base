@@ -16,6 +16,9 @@ for hook in /etc/restic/hooks.d/*; do
   "$hook"
 done
 
+# A run or a pull killed halfway leaves its lock; unlock removes only locks
+# whose process is gone or that stopped being refreshed, never a live one.
+backup-restic unlock
 backup-restic --retry-lock 1h backup --tag scheduled \
   --files-from /etc/restic/paths --exclude-file /etc/restic/excludes "$BACKUP_HOOK_OUTPUT"
 backup-restic --retry-lock 1h forget --prune --tag scheduled \
