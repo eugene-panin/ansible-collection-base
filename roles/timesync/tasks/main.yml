@@ -1,0 +1,54 @@
+---
+- name: Validate role inputs
+  ansible.builtin.assert:
+    that:
+      - timesync_servers | type_debug == "list"
+      - timesync_servers | length > 0
+      - timesync_fallback_servers | type_debug == "list"
+    fail_msg: "timesync_servers must be a non-empty list of NTP servers"
+    quiet: true
+
+- name: Tell whether this is a container
+  ansible.builtin.set_fact:
+    _timesync_container: >-
+      {{ ansible_facts['virtualization_type'] | default('') in ['docker', 'podman', 'container', 'containerd', 'lxc']
+         and ansible_facts['virtualization_role'] | default('') == 'guest' }}
+
+- name: Gather the installed packages
+  ansible.builtin.package_facts:
+    manager: apt
+
+- name: Tell whether another daemon keeps the time, which the role leaves alone
+  ansible.builtin.set_fact:
+    _timesync_other: >-
+      {{ ansible_facts.packages | dict2items | map(attribute='key')
+         | select('in', ['chrony', 'ntp', 'ntpsec', 'openntpd']) | list }}
+
+- name: Keep the time with systemd-timesyncd
+  ansible.builtin.include_tasks: timesyncd.yml
+  when: _timesync_other | length == 0
+
+- name: Wait until the clock is synchronized
+  ansible.builtin.command:
+    argv: [timedatectl, show, --property=NTPSynchronized, --value]
+  register: _timesync_synced
+  until: _timesync_synced.stdout | trim == 'yes'
+  retries: "{{ (timesync_wait_seconds | int / 5) | round(0, 'ceil') | int }}"
+  delay: 5
+  changed_when: false
+  check_mode: false
+  failed_when: false
+  when:
+    - timesync_wait | bool
+    - not ansible_check_mode
+    - not _timesync_container
+
+- name: Fail when the clock is not synchronized
+  ansible.builtin.fail:
+    msg: >-
+      the clock of this host is not synchronized after {{ timesync_wait_seconds }} seconds
+      ({{ _timesync_other | join(', ') if _timesync_other else 'systemd-timesyncd with ' ~ (timesync_servers | join(', ')) }}).
+      Check that the provider lets NTP (UDP 123) through, or name servers that answer in timesync_servers.
+  when:
+    - _timesync_synced is not skipped
+    - _timesync_synced.stdout | default('') | trim != 'yes'

@@ -1,0 +1,28 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read the drop-in of the servers
+      ansible.builtin.slurp:
+        src: /etc/systemd/timesyncd.conf.d/timesync.conf
+      register: _timesync_conf
+
+    - name: Assert it names the servers and the fallback
+      ansible.builtin.assert:
+        that:
+          - "'NTP=ntp.ovh.net 0.pool.ntp.org' in _timesync_conf.content | b64decode"
+          - "'FallbackNTP=ntp.ubuntu.com' in _timesync_conf.content | b64decode"
+        quiet: true
+
+    - name: Read the state of the unit
+      ansible.builtin.command:
+        argv: [systemctl, is-enabled, systemd-timesyncd]
+      register: _timesync_enabled
+      changed_when: false
+
+    - name: Assert the unit is enabled; a container cannot keep its own clock, so the synchronization is proved on a server
+      ansible.builtin.assert:
+        that: _timesync_enabled.stdout == 'enabled'
+        quiet: true

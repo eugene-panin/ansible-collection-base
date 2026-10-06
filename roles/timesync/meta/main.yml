@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: timesync
+  namespace: eugene_panin
+  author: Evgenii Panin
+  description: A synchronized clock, by systemd-timesyncd with NTP servers that answer, or by the daemon already there
+  license: MIT
+  min_ansible_version: "2.19"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bookworm
+  galaxy_tags:
+    - time
+    - ntp
+dependencies: []

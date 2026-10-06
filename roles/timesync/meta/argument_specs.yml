@@ -1,0 +1,32 @@
+---
+argument_specs:
+  main:
+    short_description: Keep the clock with systemd-timesyncd
+    description:
+      - Installs systemd-timesyncd, names the NTP servers it asks, and waits until
+        the clock is synchronized, so that a host whose provider blocks the default
+        servers of the distribution does not drift.
+      - Leaves a host where chrony, ntp, ntpsec or openntpd keeps the time to
+        that daemon, and only waits for the synchronization there.
+    options:
+      timesync_servers:
+        type: list
+        elements: str
+        default: [0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org, 3.pool.ntp.org]
+        description: NTP servers to keep the time with.
+      timesync_fallback_servers:
+        type: list
+        elements: str
+        default: [ntp.ubuntu.com]
+        description: NTP servers asked when none of O(timesync_servers) answers.
+      timesync_wait:
+        type: bool
+        default: true
+        description:
+          - Wait until the clock is synchronized, and fail when it is not within
+            O(timesync_wait_seconds).
+          - Off in containers, where systemd-timesyncd does not run.
+      timesync_wait_seconds:
+        type: int
+        default: 120
+        description: How long to wait for the synchronization.

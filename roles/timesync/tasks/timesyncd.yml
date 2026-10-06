@@ -1,0 +1,63 @@
+---
+- name: Refresh the apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  changed_when: false
+  check_mode: false
+  register: _timesync_apt_cache
+  until: _timesync_apt_cache is succeeded
+  retries: 30
+  delay: 10
+
+- name: Ensure systemd-timesyncd is installed
+  ansible.builtin.apt:
+    name: systemd-timesyncd
+    state: present
+    install_recommends: false
+  register: _timesync_install
+  until: _timesync_install is succeeded
+  retries: 30
+  delay: 10
+
+- name: Ensure the directory of its drop-ins exists
+  ansible.builtin.file:
+    path: /etc/systemd/timesyncd.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Name the servers it keeps the time with
+  ansible.builtin.template:
+    src: timesync.conf.j2
+    dest: /etc/systemd/timesyncd.conf.d/timesync.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "restart timesyncd"
+
+- name: Ensure systemd-timesyncd is enabled, and running outside a container, where systemd never starts it
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd
+    enabled: true
+    state: "{{ omit if _timesync_container else 'started' }}"
+  when: not (ansible_check_mode and _timesync_install is changed)
+
+- name: Apply a changed list of servers before waiting for them
+  ansible.builtin.meta: flush_handlers
+
+- name: Read whether this host can keep its clock by NTP, and does
+  ansible.builtin.command:
+    argv: [timedatectl, show, --property=CanNTP, --property=NTP]
+  register: _timesync_ntp
+  changed_when: false
+  check_mode: false
+
+- name: Let systemd keep the clock by NTP
+  ansible.builtin.command:
+    argv: [timedatectl, set-ntp, "true"]
+  when:
+    - "'CanNTP=yes' in _timesync_ntp.stdout_lines"
+    - "'NTP=yes' not in _timesync_ntp.stdout_lines"
+  changed_when: true

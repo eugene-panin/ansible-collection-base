@@ -5,6 +5,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-06
+
+### Added
+
+- `timesync` role: a synchronized clock. Where no other daemon keeps the time,
+  systemd-timesyncd asks `pool.ntp.org`, since some providers drop the replies
+  of `ntp.ubuntu.com` and leave the clock drifting; where chrony or another
+  daemon does, as on Google Cloud, the role leaves it alone. Either way it
+  waits for the synchronization and fails, saying what to check, without it.
+
 ## [0.6.1] - 2026-10-06
 
 ### Fixed
